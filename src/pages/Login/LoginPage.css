@@ -1,0 +1,39 @@
+.login-layout { min-height: 100svh; display: grid; grid-template-columns: 45% 55%; }
+.brand-panel { padding: 42px 40px; display: flex; flex-direction: column; justify-content: space-between; color: white; background: linear-gradient(150deg,#42705a 0%,#163f2e 45%,#062d20 100%); background-size: cover; background-position: center; }
+.brand { display: flex; gap: 9px; align-items: center; font: 23px Georgia,serif; }
+.brand-copy { padding: 60px 0; max-width: 460px; }
+.eyebrow { font-size: 11px; letter-spacing: 2.4px; }
+.brand-copy h1 { font: 500 clamp(30px,3vw,46px)/1.17 Georgia,serif; margin: 17px 0 22px; }
+.brand-copy > p:last-child { max-width: 345px; font-size: 14px; line-height: 1.7; color: #e4e9e4; }
+.copyright { font-size: 9px; letter-spacing: 1px; }
+.access-panel { display: grid; align-items: center; padding: 64px 35px; }
+.access-content { width: min(100%,360px); margin: auto; }
+.access-content h2 { margin: 0 0 16px; font: 500 30px/1.2 Georgia,serif; }
+.subtitle { margin: 0 0 36px; font-size: 12px; color: #626878; line-height: 1.6; letter-spacing: .3px; }
+.field { margin-bottom: 23px; }
+label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 9px; }
+input { width: 100%; height: 47px; border: 1px solid #dce0e5; border-radius: 8px; padding: 0 15px; background: white; color: #163f2e; box-shadow: 0 1px 2px #00000006; font-size: 13px; }
+input::placeholder { color: #8991a0; }
+input[aria-invalid=true] { border-color: #a83434; }
+.label-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.text-button { border: 0; padding: 0; background: transparent; color: #0b5037; font-size: 10px; }
+.text-button:hover { text-decoration: underline; }
+.password-wrap { position: relative; }
+.password-wrap input { padding-right: 48px; }
+.eye-button { position: absolute; right: 2px; top: 2px; height: 43px; width: 43px; background: transparent; border: 0; color: #798393; display: grid; place-items: center; border-radius: 6px; }
+.primary,.secondary { width: 100%; min-height: 49px; padding: 12px; border-radius: 9px; font-size: 13px; }
+.primary { background: #082f21; border: 1px solid #082f21; color: white; box-shadow: 0 4px 8px #082f211b; }
+.primary:hover:not(:disabled) { background: #14513b; }
+.primary span { margin-left: 10px; }
+.secondary { margin-top: 12px; background: transparent; border: 1px solid #0b3325; color: #0b3325; }
+.secondary:hover:not(:disabled) { background: #ecf0ea; }
+.form-footer { margin-top: 40px; padding-top: 29px; border-top: 1px solid #eceee8; text-align: center; color: #717986; font-size: 8px; letter-spacing: 1.6px; }
+.field-error { font-size: 12px; color: #972a2a; margin: 7px 0 0; }
+.error-box { padding: 12px; background: #fff0ed; border: 1px solid #e4b3a9; border-radius: 7px; color: #842a20; line-height: 1.5; font-size: 13px; }
+.session-message { font-size: 14px; line-height: 1.6; margin: 24px 0; }
+dialog { border: 1px solid #d5ddd6; border-radius: 15px; padding: 28px; width: min(440px,calc(100% - 32px)); color: #0b3325; background: #faf9f5; }
+dialog::backdrop { background: #001c16a6; }
+dialog h2 { font: 25px Georgia,serif; margin-top: 0; }
+dialog p { line-height: 1.6; font-size: 14px; margin-bottom: 24px; }
+@media (min-width: 1500px) { .brand-panel { padding: 55px 65px; } }
+@media (max-width: 700px) { .login-layout { grid-template-columns: 1fr; } .brand-panel { padding: 24px; } .brand-copy { padding: 22px 0 4px; } .brand-copy h1 { font-size: 29px; max-width: 400px; } .brand-copy > p:last-child,.copyright { display: none; } .access-panel { padding: 38px 24px; } .brand { font-size: 21px; } }
