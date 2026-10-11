@@ -1,57 +1,72 @@
-// Contrato PROPUESTO de API con sesión en cookie HttpOnly; confirmar con backend.
-const API = import.meta.env.VITE_API_URL?.trim();
+import { supabase, comprobarConfiguracion, supabaseConfigurado } from '../lib/supabase';
 
-async function request(path, { method = 'GET', body, idempotencyKey } = {}) {
-  if (!API) throw new Error('La conexión al servidor todavía no está configurada.');
-  let base;
-  try { base = new URL(API); } catch { throw new Error('La dirección del servidor no es válida.'); }
-  const local = import.meta.env.DEV && ['localhost', '127.0.0.1', '[::1]'].includes(base.hostname);
-  if (base.username || base.password || base.search || base.hash || (base.protocol !== 'https:' && !(local && base.protocol === 'http:'))) {
-    throw new Error('El servidor debe utilizar HTTPS. HTTP solo se permite en desarrollo local.');
-  }
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const response = await fetch(`${API.replace(/\/$/, '')}${path}`, {
-      method, credentials: 'include', redirect: 'error', cache: 'no-store',
-      headers: { Accept: 'application/json', ...(idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
-      body: body ? JSON.stringify(body) : undefined, signal: controller.signal,
-    });
-    if (!response.ok) {
-      const error = new Error(response.status === 401 ? 'Correo o contraseña incorrectos.' : response.status === 429 ? 'Demasiados intentos. Espera un momento antes de volver a intentar.' : 'No fue posible completar la solicitud. Inténtalo nuevamente.');
-      error.status = response.status;
-      throw error;
-    }
-    if (response.status === 204) return null;
-    return await response.json();
-  } catch (error) {
-    if (error.name === 'AbortError') throw new Error('El servidor tardó demasiado en responder. Inténtalo de nuevo.');
-    if (error instanceof TypeError) throw new Error('No se pudo conectar al servidor. Revisa la conexión e inténtalo nuevamente.');
-    if (error instanceof SyntaxError) throw new Error('El servidor envió una respuesta con formato inesperado.');
-    throw error;
-  } finally { clearTimeout(timeout); }
+// LoginPage usa este valor para saber si puede consultar la sesión al abrir.
+export const hasBackend = supabaseConfigurado;
+
+// Nombre, apellidos y teléfono se guardan como metadatos de la cuenta.
+export async function register(datos) {
+  comprobarConfiguracion();
+
+  const { data: resultado, error } = await supabase.auth.signUp({
+    email: datos.email.trim().toLowerCase(),
+    password: datos.password,
+    options: {
+      data: {
+        nombre: datos.nombre.trim(),
+        apellidos: datos.apellidos.trim(),
+        telefono: datos.telefono?.trim() || null,
+      },
+    },
+  });
+
+  if (error) throw new Error(error.message);
+  if (!resultado.user) throw new Error('No se pudo completar el registro.');
+
+  return {
+    userId: resultado.user.id,
+    email: resultado.user.email,
+    emailVerificationRequired: !resultado.session,
+  };
 }
 
-export async function getSession() {
-  const data = await request('/auth/me');
-  if (!data?.user || typeof data.user.id !== 'string') throw new Error('La respuesta de sesión no contiene un usuario válido.');
-  return data.user;
+// Adaptamos el usuario para que el login siga mostrando su nombre.
+function prepararUsuario(usuario) {
+  return {
+    id: usuario.id,
+    email: usuario.email,
+    name: usuario.user_metadata?.nombre || '',
+  };
 }
 
 export async function login(email, password) {
-  await request('/auth/login', { method: 'POST', body: { email: email.trim(), password } });
-  // Comprueba que el navegador realmente recibió una sesión utilizable.
-  return getSession();
+  comprobarConfiguracion();
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim().toLowerCase(),
+    password,
+  });
+
+  if (error) throw new Error(error.message);
+  return prepararUsuario(data.user);
 }
 
-export async function logout() { await request('/auth/logout', { method: 'POST' }); }
-export const hasBackend = Boolean(API);
+export async function getSession() {
+  if (!supabase) return null;
+  comprobarConfiguracion();
 
-// Contrato propuesto: confirmar esquema e idempotencia con backend.
-export async function register(payload, idempotencyKey) {
-  const result = await request('/auth/register', { method: 'POST', body: payload, idempotencyKey });
-  if (!result || result.created !== true || typeof result.emailVerificationRequired !== 'boolean') {
-    throw new Error('El servidor no confirmó el registro con el formato esperado. Verifica con soporte antes de volver a enviar.');
-  }
-  return result;
+  // Primero vemos si el navegador tiene una sesión.
+  const { data: datosSesion, error: errorSesion } = await supabase.auth.getSession();
+  if (errorSesion) throw new Error(errorSesion.message);
+  if (!datosSesion.session) return null;
+
+  // Después confirmamos con Supabase que sigue siendo válida.
+  const { data, error } = await supabase.auth.getUser();
+  if (error) throw new Error(error.message);
+  return prepararUsuario(data.user);
+}
+
+export async function logout() {
+  comprobarConfiguracion();
+  const { error } = await supabase.auth.signOut();
+  if (error) throw new Error(error.message);
 }
