@@ -37,17 +37,12 @@ export function validarCuenta(datos) {
 }
 
 export function prepararCuenta(datos) {
-  // Conservamos temporalmente el formato de authService actual.
-  // En el siguiente cambio lo adaptaremos a Supabase.
+  // Estos nombres coinciden con el servicio de tu compañero.
   return {
-    profile: {
-      firstName: datos.firstName.trim(),
-      lastName: datos.lastName.trim(),
-      phone: datos.phone.trim() || null,
-    },
-    credentials: {
-      email: datos.email.trim().toLowerCase(),
-      password: datos.password,
-    },
+    nombre: datos.firstName.trim(),
+    apellidos: datos.lastName.trim(),
+    telefono: datos.phone.trim() || null,
+    email: datos.email.trim().toLowerCase(),
+    password: datos.password,
   };
 }

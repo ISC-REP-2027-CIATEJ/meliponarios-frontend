@@ -12,7 +12,6 @@ export default function RegisterPage({ onLogin }) {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const titulo = useRef(null);
   const envioEnCurso = useRef(false);
-  const claveSolicitud = useRef(null);
   const hayCambios = Object.values(datos).some((valor) => valor !== '');
 
   useEffect(() => {
@@ -35,7 +34,6 @@ export default function RegisterPage({ onLogin }) {
     setDatos({ ...datos, [name]: value });
     setErrores({ ...errores, [name]: undefined });
     setError('');
-    claveSolicitud.current = null;
   }
 
   function volverAlLogin() {
@@ -62,9 +60,7 @@ export default function RegisterPage({ onLogin }) {
     envioEnCurso.current = true;
     setEnviando(true);
     try {
-      // Esta clave pertenece al servicio provisional; se retirará al migrar a Supabase.
-      if (!claveSolicitud.current) claveSolicitud.current = crypto.randomUUID();
-      const respuesta = await register(prepararCuenta(datos), claveSolicitud.current);
+      const respuesta = await register(prepararCuenta(datos));
       setResultado(respuesta);
       setDatos({ ...datosIniciales });
       setMostrarPassword(false);
@@ -114,8 +110,8 @@ export default function RegisterPage({ onLogin }) {
           {resultado ? (
             <div role="status">
               <p>{resultado.emailVerificationRequired
-                ? 'Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.'
-                : 'El servidor confirmó tu registro. Ya puedes iniciar sesión.'}</p>
+                ? 'Si el registro procede, recibirás un correo para confirmar tu cuenta. Si ya tienes una cuenta, inicia sesión.'
+                : 'Tu sesión está disponible. Puedes continuar al acceso.'}</p>
               <button className="primary" onClick={onLogin}>Ir al login</button>
             </div>
           ) : (
