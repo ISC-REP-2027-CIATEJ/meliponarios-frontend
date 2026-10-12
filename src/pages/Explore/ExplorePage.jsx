@@ -9,12 +9,14 @@ function Filtro({ activo, children, ...props }) {
   return <button type="button" aria-pressed={activo} className={`${boton} ${activo ? 'bg-[#123f2d] text-white hover:bg-[#23583e]' : 'bg-white text-[#193e2d]'}`} {...props}>{children}</button>;
 }
 
-export default function ExplorePage({ onLogin, onOpenMap, onOpenDetail }) {
-  const [busqueda, setBusqueda] = useState('');
-  const [municipio, setMunicipio] = useState('');
-  const [especie, setEspecie] = useState('');
-  const [conProductos, setConProductos] = useState(false);
-  const [activos, setActivos] = useState(false);
+export default function ExplorePage({ onLogin, onOpenMap, onOpenDetail, filtrosBusqueda, onFiltrosChange }) {
+  const { busqueda, municipio, especie, conProductos, activos } = filtrosBusqueda;
+  const cambiar = (campo, valor) => onFiltrosChange(anterior => ({ ...anterior, [campo]: valor }));
+  const setBusqueda = valor => cambiar('busqueda', valor);
+  const setMunicipio = valor => cambiar('municipio', valor);
+  const setEspecie = valor => cambiar('especie', valor);
+  const setConProductos = valor => cambiar('conProductos', valor);
+  const setActivos = valor => cambiar('activos', valor);
   const [filtros, setFiltros] = useState(false);
   const [seleccion, setSeleccion] = useState(null);
   const [ampliada, setAmpliada] = useState(false);
@@ -25,14 +27,14 @@ export default function ExplorePage({ onLogin, onOpenMap, onOpenDetail }) {
   function abrir(m, foto = false) { setSeleccion(m); setAmpliada(foto); dialogo.current.showModal(); }
 
   return <div className="explore-page min-h-screen bg-[#f8f7f1] text-[#163e2c]">
-    <a href="#contenido" className="sr-only focus:not-sr-only">Saltar al contenido</a>
+    <a href="#contenido" onClick={e => { e.preventDefault(); document.getElementById('contenido')?.focus(); }} className="sr-only focus:not-sr-only">Saltar al contenido</a>
     <header className="border-0 border-b border-solid border-[#e3e6db] bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-5 lg:px-10">
         <div className="flex items-center gap-3"><span className="text-[#ac7c20]"><Icon name="bee" size={36}/></span><div><span className="text-2xl font-extrabold tracking-tight">KaabMap</span><p className="pt-1 text-[10px] font-semibold tracking-[0.22em]">MELIPONARIOS DE YUCATÁN</p></div></div>
-        <nav aria-label="Navegación principal" className="flex items-center gap-3"><a href="#contenido" aria-current="page" className={`${boton} bg-[#edf1e7] text-[#163e2c] no-underline`}>Explorar</a>{onLogin && <button className={`${boton} bg-white`} onClick={onLogin}>Iniciar sesión <Icon name="arrow"/></button>}</nav>
+        <nav aria-label="Navegación principal" className="flex items-center gap-3"><a href="#explorar" aria-current="page" className={`${boton} bg-[#edf1e7] text-[#163e2c] no-underline`}>Explorar</a>{onLogin && <button className={`${boton} bg-white`} onClick={onLogin}>Iniciar sesión <Icon name="arrow"/></button>}</nav>
       </div>
     </header>
-    <main id="contenido" className="mx-auto max-w-7xl px-5 pb-14 pt-10 lg:px-10">
+    <main id="contenido" tabIndex={-1} className="mx-auto max-w-7xl px-5 pb-14 pt-10 lg:px-10">
       <section aria-labelledby="titulo" className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div><p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#7a662e]">ABEJAS NATIVAS · SABERES LOCALES</p><h1 id="titulo" className="text-3xl font-extrabold tracking-tight sm:text-4xl">Explorar meliponarios</h1><p className="mt-3 max-w-xl text-base leading-relaxed text-[#637063]">Conoce a quienes cuidan de las abejas sin aguijón.<br className="hidden sm:block"/> Descubre sus meliponarios y lo que producen.</p></div>
         <span className="rounded-full bg-[#e8edde] px-4 py-2 text-xs font-semibold">Datos e imágenes de demostración</span>

@@ -1,0 +1,22 @@
+/* Leaflet necesita estilos propios para capas, mosaicos y marcadores.
+   La distribución, los controles de la página y las tarjetas usan Tailwind. */
+@layer base {
+  .map-page :where(h1,h2,h3,p) { margin: 0; }
+  .map-page :where(button,input,select) { font: inherit; }
+}
+.map-page :where(button,input,select,a):focus-visible { outline: 3px solid #a67619; outline-offset: 3px; }
+.kaab-map { background: #dcebe7; font-family: Arial, sans-serif; z-index: 0; }
+.kaab-map .leaflet-control-zoom { border: 1px solid #dce1d4; border-radius: 14px; overflow: hidden; box-shadow: 0 3px 12px #173e2b20; }
+.kaab-map .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; color: #123f2d; }
+.kaab-map .leaflet-control-attribution { max-width: calc(100% - 8px); font-size: 11px; background: #fffffff0; }
+.kaab-map .leaflet-control-attribution a { color: #164d39; }
+.kaab-marker { border: none; background: transparent; }
+.kaab-pin { display: flex; align-items: center; justify-content: center; position: relative; width: 44px; height: 44px; color: white; background: #164c35; border: 3px solid white; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); box-shadow: 0 3px 8px #163c2a55; }
+.kaab-pin svg { transform: rotate(45deg); }
+.kaab-pendiente .kaab-pin { background: #be8b20; }
+.kaab-elegido .kaab-pin { outline: 3px solid #173b2d; outline-offset: 3px; }
+.kaab-cluster .kaab-pin { border-radius: 50%; background: #164c35; }
+.kaab-pin b { position: absolute; top: -6px; right: -10px; transform: rotate(45deg); border-radius: 50%; padding: 3px 6px; background: white; color: #123f2d; font: bold 12px Arial, sans-serif; box-shadow: 0 1px 4px #123f2d33; }
+.map-page dialog::backdrop { background: #082f21aa; backdrop-filter: blur(4px); }
+.map-page dialog { max-height: 90svh; overflow: auto; }
+@media (prefers-reduced-motion: reduce) { .map-page * { scroll-behavior: auto !important; } }
