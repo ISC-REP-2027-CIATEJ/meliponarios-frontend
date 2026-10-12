@@ -1,3 +1,23 @@
+/* Estilos compartidos que antes venían de LoginPage.css.
+   Se conservan aquí hasta migrar el registro a Tailwind. */
+:where(.registration-layout) .brand { display: flex; gap: 9px; align-items: center; font: 23px Georgia,serif; }
+:where(.registration-layout) .eyebrow { font-size: 11px; letter-spacing: 2.4px; }
+:where(.registration-layout) .copyright { font-size: 9px; letter-spacing: 1px; }
+:where(.registration-layout) label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 9px; }
+:where(.registration-layout) input { width: 100%; height: 47px; border: 1px solid #dce0e5; border-radius: 8px; padding: 0 15px; background: white; color: #163f2e; box-shadow: 0 1px 2px #00000006; font-size: 13px; }
+:where(.registration-layout) input::placeholder { color: #8991a0; }
+:where(.registration-layout) input[aria-invalid=true] { border-color: #a83434; }
+:where(.registration-layout) .text-button { border: 0; padding: 0; background: transparent; color: #0b5037; font-size: 10px; }
+:where(.registration-layout) .text-button:hover { text-decoration: underline; }
+:where(.registration-layout) .primary, :where(.registration-layout) .secondary { width: 100%; min-height: 49px; padding: 12px; border-radius: 9px; font-size: 13px; }
+:where(.registration-layout) .primary { background: #082f21; border: 1px solid #082f21; color: white; box-shadow: 0 4px 8px #082f211b; }
+:where(.registration-layout) .primary:hover:not(:disabled) { background: #14513b; }
+:where(.registration-layout) .primary span { margin-left: 10px; }
+:where(.registration-layout) .secondary { margin-top: 12px; background: transparent; border: 1px solid #0b3325; color: #0b3325; }
+:where(.registration-layout) .secondary:hover:not(:disabled) { background: #ecf0ea; }
+:where(.registration-layout) .field-error { font-size: 12px; color: #972a2a; margin: 7px 0 0; }
+:where(.registration-layout) .error-box { padding: 12px; background: #fff0ed; border: 1px solid #e4b3a9; border-radius: 7px; color: #842a20; line-height: 1.5; font-size: 13px; }
+
 .registration-layout { display:grid; grid-template-columns:28% 72%; min-height:100svh; }
 .registration-aside { background:#082f21; color:white; padding:42px 34px 24px; display:flex; flex-direction:column; justify-content:space-between; gap:64px; position:sticky; top:0; height:100svh; overflow:auto; }
 .registration-aside h2 { font:28px/1.2 Georgia,serif; margin:20px 0; }
