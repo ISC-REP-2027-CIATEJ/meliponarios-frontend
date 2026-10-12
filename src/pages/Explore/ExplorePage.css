@@ -1,0 +1,10 @@
+/* Aislamiento del CSS heredado del login. El diseño está en Tailwind. */
+@layer base { .explore-page :where(h1,h2,h3,p) { margin: 0; } }
+.explore-page :where(button,input,select) { font: inherit; }
+.explore-page :where(input,select) { box-shadow: none; }
+.explore-page :where(label) { font-size: 14px; margin-bottom: 0; }
+.explore-page :where(button,a,input,select):focus-visible { outline: 3px solid #a67619; outline-offset: 4px; }
+.explore-page dialog::backdrop { background: #082f21aa; backdrop-filter: blur(4px); }
+.explore-page dialog { max-height: 90svh; overflow: auto; }
+/* Las reglas antiguas sin capa tienen prioridad sobre Tailwind. */
+.explore-page input { width: 100%; height: 52px; border: 0; border-radius: 0; padding: 0 12px; background: transparent; color: #163f2e; font-size: 16px; }
