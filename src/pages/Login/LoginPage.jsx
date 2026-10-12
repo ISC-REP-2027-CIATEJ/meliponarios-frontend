@@ -152,16 +152,7 @@ export default function LoginPage({ onRegister, onExplore }) {
         aria-labelledby="access-title"
       >
         <div className="mx-auto w-full max-w-[360px]">
-          {onExplore && (
-            <button
-              type="button"
-              className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-lg border-0 bg-transparent px-2 py-2 text-sm text-bosque enabled:hover:bg-[#ecf0ea]"
-              onClick={onExplore}
-              disabled={busy}
-            >
-              <span aria-hidden="true">←</span> Volver a Explorar
-            </button>
-          )}
+          {onExplore && <button type="button" className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-lg border-0 bg-transparent px-2 py-2 text-sm text-bosque enabled:hover:bg-[#ecf0ea]" onClick={onExplore} disabled={busy}><span aria-hidden="true">←</span> Volver a Explorar</button>}
           <h2
             id="access-title"
             className="m-0 mb-4 font-serif text-[30px] leading-[1.2] font-medium"
