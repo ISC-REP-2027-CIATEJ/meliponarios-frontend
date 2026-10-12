@@ -6,7 +6,7 @@ import ExplorePage from './pages/Explore/ExplorePage';
 // Navegación sencilla; permite abrir y recargar #explorar directamente.
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return ['explorar', 'register', 'login'].includes(pagina) ? pagina : 'login';
+  return ['explorar', 'register', 'login'].includes(pagina) ? pagina : 'explorar';
 }
 export default function App() {
   const [page, setPage] = useState(paginaActual);
@@ -17,5 +17,5 @@ export default function App() {
   }, []);
   const ir = pagina => { window.location.hash = pagina; };
   if (page === 'explorar') return <ExplorePage onLogin={() => ir('login')}/>;
-  return page === 'register' ? <RegisterPage onLogin={() => ir('login')}/> : <LoginPage onRegister={() => ir('register')}/>;
+  return page === 'register' ? <RegisterPage onLogin={() => ir('login')}/> : <LoginPage onRegister={() => ir('register')} onExplore={() => ir('explorar')}/>;
 }
