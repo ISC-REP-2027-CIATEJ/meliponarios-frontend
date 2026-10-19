@@ -1,0 +1,50 @@
+@layer base {
+  .detail-page :where(h1, h2, h3, p) {
+    margin: 0;
+  }
+  .detail-page :where(button, select, input) {
+    font: inherit;
+  }
+}
+.detail-page :where(button, a, select):focus-visible {
+  outline: 3px solid #aa7c23;
+  outline-offset: 3px;
+}
+.detail-page h1:focus {
+  outline: none;
+}
+.detail-page dialog::backdrop {
+  background: #062e24bb;
+  backdrop-filter: blur(5px);
+}
+.detail-page dialog {
+  max-height: 92svh;
+  overflow: auto;
+}
+.detalle-location {
+  z-index: 0;
+  background: #e1ebe2;
+  font-family: Arial, sans-serif;
+}
+.detalle-location .leaflet-control-attribution {
+  font-size: 10px;
+  background: #fffffff0;
+}
+.detalle-location .leaflet-control-attribution a {
+  color: #154d36;
+}
+.detalle-location .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+.detalle-pin {
+  border: 3px solid white;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #164c35;
+  color: white;
+  box-shadow: 0 2px 8px #123f2d66;
+  font-size: 28px;
+}
