@@ -1,10 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  getSession,
-  hasBackend,
-  login,
-  logout,
-} from "../../services/authService";
+import { useRef, useState } from "react";
+import { login } from "../../services/authService";
 
 function Eye({ visible }) {
   return (
@@ -24,13 +19,16 @@ function Eye({ visible }) {
   );
 }
 
-export default function LoginPage({ onRegister, onExplore }) {
+export default function LoginPage({
+  onRegister,
+  onExplore,
+  onLoginSuccess,
+  sessionReady = true,
+}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [checking, setChecking] = useState(hasBackend);
-  const [user, setUser] = useState(null);
   const [error, setError] = useState("");
   const [errors, setErrors] = useState({});
   const [notice, setNotice] = useState("");
@@ -39,24 +37,6 @@ export default function LoginPage({ onRegister, onExplore }) {
   const passwordInput = useRef(null);
   const pending = useRef(false);
   const photo = import.meta.env.VITE_LOGIN_IMAGE?.trim();
-
-  useEffect(() => {
-    if (!hasBackend) return;
-    let active = true;
-    getSession()
-      .then((value) => {
-        if (active) setUser(value);
-      })
-      .catch((err) => {
-        if (active && err.status !== 401) setError(err.message);
-      })
-      .finally(() => {
-        if (active) setChecking(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
 
   function showNotice(message) {
     setNotice(message);
@@ -80,29 +60,13 @@ export default function LoginPage({ onRegister, onExplore }) {
     pending.current = true;
     setBusy(true);
     try {
-      setUser(await login(email, password));
+      const usuario = await login(email, password);
+      onLoginSuccess(usuario);
     } catch (err) {
       setError(err.message);
     } finally {
       setPassword("");
       setVisible(false);
-      setBusy(false);
-      pending.current = false;
-    }
-  }
-
-  async function exitSession() {
-    if (pending.current) return;
-    pending.current = true;
-    setBusy(true);
-    setError("");
-    try {
-      await logout();
-      setUser(null);
-      setEmail("");
-    } catch (err) {
-      setError(err.message);
-    } finally {
       setBusy(false);
       pending.current = false;
     }
@@ -157,33 +121,15 @@ export default function LoginPage({ onRegister, onExplore }) {
             id="access-title"
             className="m-0 mb-4 font-serif text-[30px] leading-[1.2] font-medium"
           >
-            {user ? "Sesión iniciada" : "Acceso al Sistema"}
+            Acceso al Sistema
           </h2>
           <p className="m-0 mb-9 text-xs leading-[1.6] tracking-[.3px] text-[#626878]">
-            {user
-              ? "Tu acceso fue validado por el servidor."
-              : "Ingrese sus credenciales para continuar."}
+            Ingresa tus credenciales para continuar.
           </p>
 
-          {checking && <p role="status">Comprobando sesión…</p>}
+          {!sessionReady && <p role="status">Comprobando sesión…</p>}
 
-          {!checking && user && (
-            <div>
-              <p className="my-6 text-sm leading-[1.6]" role="status">
-                Bienvenido{user.name ? `, ${user.name}` : ""}. El dashboard se
-                implementará en una siguiente etapa.
-              </p>
-              <button
-                className="min-h-[49px] w-full rounded-[9px] border border-solid border-bosque bg-bosque p-3 text-[13px] text-white shadow-sm enabled:hover:bg-[#14513b]"
-                onClick={exitSession}
-                disabled={busy}
-              >
-                {busy ? "Cerrando sesión…" : "Cerrar sesión"}
-              </button>
-            </div>
-          )}
-
-          {!checking && !user && (
+          {sessionReady && (
             <form onSubmit={submit} noValidate aria-busy={busy}>
               <div className="mb-[23px]">
                 <label

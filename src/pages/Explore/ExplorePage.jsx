@@ -9,7 +9,7 @@ function Filtro({ activo, children, ...props }) {
   return <button type="button" aria-pressed={activo} className={`${boton} ${activo ? 'bg-[#123f2d] text-white hover:bg-[#23583e]' : 'bg-white text-[#193e2d]'}`} {...props}>{children}</button>;
 }
 
-export default function ExplorePage({ onLogin, onOpenMap, onOpenDetail, filtrosBusqueda, onFiltrosChange }) {
+export default function ExplorePage({ onLogin, onLogout, onOpenMap, onOpenDetail, filtrosBusqueda, onFiltrosChange, user, sessionReady = true }) {
   const { busqueda, municipio, especie, conProductos, activos } = filtrosBusqueda;
   const cambiar = (campo, valor) => onFiltrosChange(anterior => ({ ...anterior, [campo]: valor }));
   const setBusqueda = valor => cambiar('busqueda', valor);
@@ -20,18 +20,86 @@ export default function ExplorePage({ onLogin, onOpenMap, onOpenDetail, filtrosB
   const [filtros, setFiltros] = useState(false);
   const [seleccion, setSeleccion] = useState(null);
   const [ampliada, setAmpliada] = useState(false);
+  const [cuentaAbierta, setCuentaAbierta] = useState(false);
+  const [cerrandoSesion, setCerrandoSesion] = useState(false);
+  const [errorCuenta, setErrorCuenta] = useState('');
   const dialogo = useRef(null);
+  const nombreUsuario = user?.name?.trim() || 'Mi cuenta';
+  const inicialUsuario = (user?.name?.trim() || user?.email || 'U').charAt(0).toUpperCase();
   const resultados = filtrarMeliponarios(meliponarios, { busqueda, municipio, especie, conProductos, activos });
   const hayFiltros = busqueda || municipio || especie || conProductos || activos;
   function limpiar() { setBusqueda(''); setMunicipio(''); setEspecie(''); setConProductos(false); setActivos(false); }
   function abrir(m, foto = false) { setSeleccion(m); setAmpliada(foto); dialogo.current.showModal(); }
+  async function cerrarSesion() {
+    if (!onLogout || cerrandoSesion) return;
+    setCerrandoSesion(true);
+    setErrorCuenta('');
+    try {
+      await onLogout();
+      setCuentaAbierta(false);
+    } catch (error) {
+      setErrorCuenta(error.message || 'No se pudo cerrar la sesión.');
+    } finally {
+      setCerrandoSesion(false);
+    }
+  }
 
   return <div className="explore-page min-h-screen bg-[#f8f7f1] text-[#163e2c]">
     <a href="#contenido" onClick={e => { e.preventDefault(); document.getElementById('contenido')?.focus(); }} className="sr-only focus:not-sr-only">Saltar al contenido</a>
     <header className="border-0 border-b border-solid border-[#e3e6db] bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-5 lg:px-10">
         <div className="flex items-center gap-3"><span className="text-[#ac7c20]"><Icon name="bee" size={36}/></span><div><span className="text-2xl font-extrabold tracking-tight">KaabMap</span><p className="pt-1 text-[10px] font-semibold tracking-[0.22em]">MELIPONARIOS DE YUCATÁN</p></div></div>
-        <nav aria-label="Navegación principal" className="flex items-center gap-3"><a href="#explorar" aria-current="page" className={`${boton} bg-[#edf1e7] text-[#163e2c] no-underline`}>Explorar</a>{onLogin && <button className={`${boton} bg-white`} onClick={onLogin}>Iniciar sesión <Icon name="arrow"/></button>}</nav>
+        <nav aria-label="Navegación principal" className="flex items-center gap-3">
+          <a href="#explorar" aria-current="page" className={`${boton} bg-[#edf1e7] text-[#163e2c] no-underline`}>Explorar</a>
+          {!sessionReady ? (
+            <span className="px-3 text-sm text-[#637063]" role="status">Comprobando sesión…</span>
+          ) : user ? (
+            <div className="relative">
+              <button
+                className={`${boton} bg-white`}
+                type="button"
+                aria-expanded={cuentaAbierta}
+                aria-controls="opciones-cuenta"
+                onClick={() => { setCuentaAbierta(!cuentaAbierta); setErrorCuenta(''); }}
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8edde] text-sm font-bold text-[#163e2c]">{inicialUsuario}</span>
+                <span className="flex min-w-0 flex-col items-start text-left leading-tight">
+                  <span className="max-w-[150px] truncate">{nombreUsuario}</span>
+                  <span className="flex items-center gap-1 text-[10px] font-medium text-[#80682a]">
+                    <Icon name="bee" size={12}/>
+                    <span className="max-w-[150px] truncate">{user.roleName || 'Rol no disponible'}</span>
+                  </span>
+                </span>
+                <span className={'grid size-7 shrink-0 place-items-center rounded-full bg-[#edf1e7] text-[#607250] transition-transform ' + (cuentaAbierta ? 'rotate-180' : '')} aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </span>
+              </button>
+              {cuentaAbierta && (
+                <div id="opciones-cuenta" className="absolute right-0 top-full z-30 mt-2 min-w-60 rounded-2xl border border-solid border-[#dce1d4] bg-white p-4 shadow-lg">
+                  <p className="mb-1 text-sm font-semibold">{nombreUsuario}</p>
+                  <p className="mb-3 flex items-center gap-1.5 text-xs font-medium text-[#80682a]">
+                    <Icon name="bee" size={14}/>
+                    {user.roleName || 'Rol no disponible'}
+                  </p>
+                  {user.email && <p className="mb-4 break-all text-xs text-[#637063]">{user.email}</p>}
+                  {errorCuenta && <p className="mb-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]" role="alert">{errorCuenta}</p>}
+                  <button
+                    className="min-h-10 w-full rounded-lg border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm text-[#163e2c] hover:bg-[#edf1e7]"
+                    type="button"
+                    onClick={cerrarSesion}
+                    disabled={cerrandoSesion}
+                  >
+                    {cerrandoSesion ? 'Cerrando sesión…' : 'Cerrar sesión'}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : onLogin ? (
+            <button className={`${boton} bg-white`} onClick={onLogin}>Iniciar sesión <Icon name="arrow"/></button>
+          ) : null}
+        </nav>
       </div>
     </header>
     <main id="contenido" tabIndex={-1} className="mx-auto max-w-7xl px-5 pb-14 pt-10 lg:px-10">

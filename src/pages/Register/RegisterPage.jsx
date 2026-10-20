@@ -119,15 +119,19 @@ export default function RegisterPage({ onLogin }) {
         <div className="hidden min-[761px]:block">
           <p className="text-[11px] tracking-[2.4px]">CIATEJ · SURESTE</p>
           <h2 className="my-5 font-serif text-[28px] leading-[1.2] font-normal">
-            Crea tu cuenta
+            {resultado ? "Confirma tu correo" : "Crea tu cuenta"}
           </h2>
           <p className="text-xs leading-[1.8] text-[#e3eee6]">
-            Regístrate para acceder a la plataforma.
+            {resultado
+              ? "Ya casi terminas. Revisa tu bandeja de entrada para activar el acceso."
+              : "Regístrate para acceder a la plataforma."}
           </p>
-          <p className="text-xs leading-[1.8] text-[#e3eee6]">
-            El registro de un meliponario se realiza después, en un apartado
-            independiente.
-          </p>
+          {!resultado && (
+            <p className="text-xs leading-[1.8] text-[#e3eee6]">
+              El registro de un meliponario se realiza después, en un apartado
+              independiente.
+            </p>
+          )}
         </div>
         <small className="hidden text-[9px] tracking-[1px] min-[761px]:block">
           © 2026 CIATEJ · UNIDAD SURESTE
@@ -141,22 +145,64 @@ export default function RegisterPage({ onLogin }) {
             ref={titulo}
             tabIndex="-1"
           >
-            {resultado ? "Revisa tu acceso" : "Crear cuenta"}
+            {resultado ? "Un paso más para activar tu cuenta" : "Crear cuenta"}
           </h1>
           {resultado ? (
-            <div role="status">
-              <p>
+            <section
+              className="mt-7 rounded-2xl border border-solid border-[#dce5dc] bg-white p-6 shadow-[0_12px_35px_#0a3b2610] min-[761px]:p-8"
+              role="status"
+            >
+              <div className="grid size-14 place-items-center rounded-full bg-[#eaf2e9] text-[#0b5037]">
+                <svg
+                  aria-hidden="true"
+                  width="28"
+                  height="28"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.7"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="3" y="5" width="18" height="14" rx="2" />
+                  <path d="m4 7 8 6 8-6" />
+                  <path d="m8.5 16 2 2 5-5" />
+                </svg>
+              </div>
+              <h2 className="mt-5 mb-3 font-serif text-[25px] leading-[1.25] font-normal text-bosque">
                 {resultado.emailVerificationRequired
-                  ? "Si el registro procede, recibirás un correo para confirmar tu cuenta. Si ya tienes una cuenta, inicia sesión."
-                  : "Tu sesión está disponible. Puedes continuar al acceso."}
+                  ? "Confirma tu correo electrónico"
+                  : "Tu cuenta está lista"}
+              </h2>
+              <p className="mb-3 text-sm leading-[1.7] text-[#526258]">
+                {resultado.emailVerificationRequired ? (
+                  <>
+                    Enviamos un enlace de confirmación a{" "}
+                    <strong className="break-all text-bosque">
+                      {resultado.email}
+                    </strong>
+                    . Abre ese mensaje y confirma tu dirección para activar tu
+                    cuenta.
+                  </>
+                ) : (
+                  "Tu sesión está disponible. Puedes continuar al acceso."
+                )}
               </p>
+              {resultado.emailVerificationRequired && (
+                <>
+                  <p className="mt-4 mb-0 text-xs leading-[1.6] text-[#68756b]">
+                    Si no lo encuentras, revisa la carpeta de spam. Después de
+                    confirmar, vuelve aquí para iniciar sesión.
+                  </p>
+                </>
+              )}
               <button
-                className="min-h-[49px] w-full rounded-[9px] border border-solid border-bosque bg-bosque p-3 text-[13px] text-white shadow-[0_4px_8px_#082f211b] enabled:hover:bg-[#14513b]"
+                className="mt-5 min-h-[49px] w-full rounded-[9px] border border-solid border-bosque bg-transparent p-3 text-[13px] text-bosque enabled:hover:bg-[#ecf0ea]"
                 onClick={onLogin}
               >
                 Ir al login
               </button>
-            </div>
+            </section>
           ) : (
             <form noValidate onSubmit={crearCuenta} aria-busy={enviando}>
               <p className="mt-0 mb-[30px] text-xs leading-[1.6] text-[#626e65]">
