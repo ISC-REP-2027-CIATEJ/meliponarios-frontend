@@ -47,7 +47,6 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
     const map = mapa.current;
     let fallo = false;
     let cargadas = 0;
-    setEstado('cargando');
     const tiles = L.tileLayer(mapConfig.url, { attribution: mapConfig.attribution, maxZoom: mapConfig.maxZoom });
     capa.current = tiles;
     tiles.on('tileload', () => { cargadas++; if (!fallo) setEstado('listo'); });
@@ -69,8 +68,9 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
         const punto = items[0];
         const centro = agrupado ? L.latLngBounds(items.map(m => m.coordenadas)).getCenter() : punto.coordenadas;
         const nombre = agrupado ? `Acercar grupo de ${items.length} meliponarios` : punto.nombre;
+        const clasesOferta = { miel: 'kaab-miel', difusion: 'kaab-difusion', ambos: 'kaab-ambos' };
         const icon = L.divIcon({
-          className: `kaab-marker ${agrupado ? 'kaab-cluster' : punto.estado === 'Activo' ? 'kaab-activo' : 'kaab-pendiente'} ${items.some(m => m.id === seleccionId) ? 'kaab-elegido' : ''}`,
+          className: `kaab-marker ${agrupado ? 'kaab-cluster' : clasesOferta[punto.ofertaVisualDemo] || 'kaab-sin-clasificar'} ${items.some(m => m.id === seleccionId) ? 'kaab-elegido' : ''}`,
           html: `<span class="kaab-pin">${abeja}${agrupado ? `<b>${items.length}</b>` : ''}</span>`,
           iconSize: [46, 52], iconAnchor: [23, 48],
         });
@@ -106,7 +106,7 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
   return <div className="relative h-full min-h-[420px]">
     <div ref={contenedor} className="kaab-map h-full min-h-[420px]" role="region" aria-label="Mapa interactivo de la península de Yucatán"/>
     {estado !== 'listo' && <div className="absolute bottom-12 left-3 right-16 z-[800] max-w-sm rounded-xl bg-white p-3 text-sm text-[#25452f] shadow-lg" role="status">
-      {estado === 'cargando' ? 'Cargando el mapa…' : <>No se pudo cargar parte del mapa. Revisa tu conexión.<button className="mt-2 block min-h-11 rounded-lg border border-solid border-[#ccd6c4] bg-[#edf1e7] px-4" onClick={() => setIntento(n => n + 1)}>Reintentar mapa</button></>}
+      {estado === 'cargando' ? 'Cargando el mapa…' : <>No se pudo cargar parte del mapa. Revisa tu conexión.<button className="mt-2 block min-h-11 rounded-lg border border-solid border-[#ccd6c4] bg-[#edf1e7] px-4" onClick={() => { setEstado('cargando'); setIntento(n => n + 1); }}>Reintentar mapa</button></>}
     </div>}
   </div>;
 });

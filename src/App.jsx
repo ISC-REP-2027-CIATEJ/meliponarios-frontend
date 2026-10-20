@@ -79,6 +79,9 @@ export default function App() {
         onExplore={() => ir("explorar")}
         onMap={() => ir("mapa")}
         onLogin={() => ir("login")}
+        user={user}
+        sessionReady={sessionReady}
+        onLogout={cerrarSesion}
       />
     );
   if (page === "mapa")
@@ -89,6 +92,9 @@ export default function App() {
         onExplore={() => ir("explorar")}
         onLogin={() => ir("login")}
         onOpenDetail={(id) => abrirDetalle(id, "mapa")}
+        user={user}
+        sessionReady={sessionReady}
+        onLogout={cerrarSesion}
       />
     );
   if (page === "explorar")

@@ -13,7 +13,10 @@
 .kaab-marker { border: none; background: transparent; }
 .kaab-pin { display: flex; align-items: center; justify-content: center; position: relative; width: 44px; height: 44px; color: white; background: #164c35; border: 3px solid white; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg); box-shadow: 0 3px 8px #163c2a55; }
 .kaab-pin svg { transform: rotate(45deg); }
-.kaab-pendiente .kaab-pin { background: #be8b20; }
+.kaab-miel .kaab-pin { background: #d7a51e; }
+.kaab-difusion .kaab-pin { background: #4e9962; }
+.kaab-ambos .kaab-pin { background: #3e82ae; }
+.kaab-sin-clasificar .kaab-pin { background: #71806d; }
 .kaab-elegido .kaab-pin { outline: 3px solid #173b2d; outline-offset: 3px; }
 .kaab-cluster .kaab-pin { border-radius: 50%; background: #164c35; }
 .kaab-pin b { position: absolute; top: -6px; right: -10px; transform: rotate(45deg); border-radius: 50%; padding: 3px 6px; background: white; color: #123f2d; font: bold 12px Arial, sans-serif; box-shadow: 0 1px 4px #123f2d33; }

@@ -6,7 +6,7 @@ export const especiesDetalle = {
     imagen: "abeja-dorada.png",
     audio: null,
     descripcion:
-      "Especie registrada en este ejemplo de meliponario. La ficha permitirá consultar su fotografía, descripción y grabación de sonido.",
+      "Abeja registrada en este ejemplo de meliponario. La ficha permite consultar su fotografía, descripción y, cuando esté disponible, su grabación de sonido.",
     nota: "Fotografía ilustrativa generada. La identificación y la descripción científica deben validarse con el centro.",
   },
   "Nannotrigona perilampoides": {
@@ -14,16 +14,16 @@ export const especiesDetalle = {
     imagen: "abeja-oscura.png",
     audio: null,
     descripcion:
-      "Este registro reúne los datos de la especie presente en el meliponario. El centro podrá completar el nombre local, sus características y su sonido.",
-    nota: "Fotografía ilustrativa generada; no debe utilizarse para identificar la especie.",
+      "Este registro reúne información sobre el tipo de abeja presente en el meliponario. El centro podrá completar el nombre local, sus características y su sonido.",
+    nota: "Fotografía ilustrativa generada; no debe utilizarse para identificar a la abeja.",
   },
   "Scaptotrigona pectoralis": {
     nombreComun: "Nombre local por confirmar",
     imagen: "abeja-oscura.png",
     audio: null,
     descripcion:
-      "Ficha de demostración para consultar una especie registrada, su imagen ampliada y las cajas donde se mantiene.",
-    nota: "Imagen ilustrativa compartida temporalmente. Sustituir por la fotografía validada de esta especie.",
+      "Ficha de demostración para conocer esta abeja nativa, su imagen y las características que comparta el centro.",
+    nota: "Imagen ilustrativa compartida temporalmente. Sustituir por la fotografía validada de esta abeja.",
   },
 };
 
@@ -79,15 +79,9 @@ export const detalleMeliponarios = {
       correo: null,
     },
     descripcion:
-      "Un espacio dedicado al cuidado de las abejas nativas sin aguijón. En este ejemplo, las colonias se mantienen bajo una palapa y se combinan cajas racionales con jobones. La conservación, los saberes locales y el encuentro con la comunidad forman parte de la historia que contará cada meliponario.",
-    estructura: "Palapa tradicional",
-    entorno: "Vegetación de selva baja",
-    clima: "Cálido · dato de ejemplo",
+      "Un espacio dedicado al cuidado de las abejas nativas sin aguijón. La conservación, los saberes locales y el encuentro con la comunidad forman parte de la historia que comparte este meliponario.",
     galeria: ["palapa.png", "cajas.png", "sendero.png"],
-    colonias: [
-      { especie: "Melipona beecheii", cajas: 18, jobones: 12 },
-      { especie: "Nannotrigona perilampoides", cajas: 6, jobones: 0 },
-    ],
+    abejas: ["Melipona beecheii", "Nannotrigona perilampoides"],
     productos: ["miel", "cera", "jabon"],
     venta: {
       nombre: "Punto de venta del meliponario",
@@ -109,16 +103,9 @@ export const detalleMeliponarios = {
       correo: null,
     },
     descripcion:
-      "Entre árboles y flores, este ejemplo de meliponario reúne colonias en cajas de madera. Aquí podrán consultarse las especies registradas, las características del sitio y los productos que el responsable decida publicar.",
-    estructura: "Cobertizo de madera",
-    entorno: "Jardín con vegetación local",
-    clima: "Por confirmar",
+      "Entre árboles y flores, este ejemplo de meliponario invita a conocer las abejas nativas y los productos de la colmena que el responsable decida compartir.",
     galeria: ["cajas.png", "sendero.png"],
-    colonias: [
-      { especie: "Melipona beecheii", cajas: 8, jobones: 4 },
-      { especie: "Scaptotrigona pectoralis", cajas: 8, jobones: 0 },
-      { especie: "Nannotrigona perilampoides", cajas: 4, jobones: 0 },
-    ],
+    abejas: ["Melipona beecheii", "Scaptotrigona pectoralis", "Nannotrigona perilampoides"],
     productos: ["miel", "propoleo"],
     venta: {
       nombre: "Venta directa con el responsable",
@@ -141,11 +128,8 @@ export const detalleMeliponarios = {
     },
     descripcion:
       "Un sitio de demostración para la conservación de las abejas nativas y su entorno. Su registro está pendiente de revisión, por lo que todavía no publica productos ni datos de contacto.",
-    estructura: "Palapa",
-    entorno: "Vegetación local",
-    clima: "Por confirmar",
     galeria: ["sendero.png", "palapa.png"],
-    colonias: [{ especie: "Melipona beecheii", cajas: 8, jobones: 4 }],
+    abejas: ["Melipona beecheii"],
     productos: [],
     venta: {
       nombre: "Punto de venta por confirmar",

@@ -26,8 +26,39 @@ const titulo = "flex items-center gap-2 text-xl font-bold tracking-tight";
 const panel =
   "rounded-2xl border border-solid border-[#e0e5d8] bg-white p-5 sm:p-6";
 
-export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
-  const sitio = meliponarios.find((m) => m.id === id);
+function CuentaSesion({ user, sessionReady, onLogin, onLogout }) {
+  const [abierta, setAbierta] = useState(false);
+  const [cerrando, setCerrando] = useState(false);
+  const [error, setError] = useState("");
+  const nombre = user?.name?.trim() || "Mi cuenta";
+  const inicial = (user?.name?.trim() || user?.email || "U").charAt(0).toUpperCase();
+  async function cerrarSesion() {
+    if (!onLogout || cerrando) return;
+    setCerrando(true);
+    setError("");
+    try {
+      await onLogout();
+      setAbierta(false);
+    } catch (fallo) {
+      setError(fallo.message || "No se pudo cerrar la sesión.");
+    } finally {
+      setCerrando(false);
+    }
+  }
+  if (!sessionReady) return <span className="px-3 text-sm text-[#637063]" role="status">Comprobando sesión…</span>;
+  if (!user) return <button type="button" className={claro} onClick={onLogin}>Iniciar sesión</button>;
+  return <div className="relative">
+    <button type="button" className={`${claro} bg-white`} aria-expanded={abierta} aria-controls="opciones-cuenta-ficha" onClick={() => { setAbierta(!abierta); setError(""); }}>
+      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8edde] text-sm font-bold">{inicial}</span>
+      <span className="flex min-w-0 flex-col items-start text-left leading-tight"><span className="max-w-[145px] truncate">{nombre}</span><span className="flex items-center gap-1 text-[10px] font-medium text-[#80682a]"><Icon name="bee" size={12}/><span className="max-w-[145px] truncate">{user.roleName || "Rol no disponible"}</span></span></span>
+      <span aria-hidden="true" className={`transition-transform ${abierta ? "rotate-180" : ""}`}>⌄</span>
+    </button>
+    {abierta && <div id="opciones-cuenta-ficha" className="absolute right-0 top-full z-30 mt-2 min-w-60 rounded-2xl border border-solid border-[#dce1d4] bg-white p-4 text-left shadow-lg"><p className="text-sm font-semibold">{nombre}</p><p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#80682a]"><Icon name="bee" size={14}/>{user.roleName || "Rol no disponible"}</p>{user.email && <p className="mt-3 break-all text-xs text-[#637063]">{user.email}</p>}{error && <p role="alert" className="mt-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]">{error}</p>}<button type="button" className="mt-4 min-h-10 w-full rounded-lg border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm hover:bg-[#edf1e7]" onClick={cerrarSesion} disabled={cerrando}>{cerrando ? "Cerrando sesión…" : "Cerrar sesión"}</button></div>}
+  </div>;
+}
+
+export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user, sessionReady = true, onLogout }) {
+  const sitio = meliponarios.find((m) => m.id === id && m.estado === "Activo");
   const detalle = detalleMeliponarios[id];
   const [foto, setFoto] = useState(0);
   const [categoria, setCategoria] = useState("Todos");
@@ -40,9 +71,6 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     cabecera.current?.focus({ preventScroll: true });
-    return () => {
-      compartirSolicitud.current++;
-    };
   }, []);
   if (!sitio || !detalle)
     return (
@@ -68,8 +96,6 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
   const contactos = enlacesContacto(detalle.responsable);
   const ruta = enlaceRuta(detalle.venta);
   const punto = ruta ? detalle.venta.coordenadas : ubicacionesDemo[id];
-  const totalCajas = detalle.colonias.reduce((n, c) => n + c.cajas, 0);
-  const totalJobones = detalle.colonias.reduce((n, c) => n + c.jobones, 0);
   function abrir(valor) {
     sonido.detener();
     setModal(valor);
@@ -150,9 +176,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
               <Icon name="map" />
               Mapa
             </button>
-            <button className={claro} onClick={onLogin}>
-              Iniciar sesión
-            </button>
+            <CuentaSesion user={user} sessionReady={sessionReady} onLogin={onLogin} onLogout={onLogout} />
           </nav>
         </div>
       </header>
@@ -237,18 +261,10 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
               {sitio.municipio}, Yucatán
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <span className="rounded-full bg-[#164c35] px-3 py-2 text-xs font-semibold text-white">
-                ● {sitio.estado}
-              </span>
-              <span className="flex items-center gap-2 rounded-full bg-[#e8eddf] px-3 py-2 text-xs">
+              <span className="flex flex-wrap items-center gap-2 rounded-full bg-[#e8eddf] px-3 py-2 text-xs">
                 <Icon name="bee" size={16} />
-                {sitio.especies[0]}
+                <span>Tipos de abejas: {sitio.especies.join(" · ")}</span>
               </span>
-              {sitio.especies.length > 1 && (
-                <span className="rounded-full bg-[#e8eddf] px-3 py-2 text-xs">
-                  y {sitio.especies.length - 1} más
-                </span>
-              )}
             </div>
           </div>
           <div>
@@ -273,76 +289,48 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
               <p className="mt-4 text-base leading-relaxed text-[#5b6957]">
                 {detalle.descripcion}
               </p>
-              <div className="mt-6 grid gap-4 border-0 border-t border-solid border-[#e7ebdf] pt-5 sm:grid-cols-2">
-                <div className="flex gap-3">
-                  <DetailIcon name="home" />
-                  <div>
-                    <h3 className="text-sm font-semibold">
-                      Tipo de estructura
-                    </h3>
-                    <p className="mt-1 text-sm text-[#65715f]">
-                      {detalle.estructura}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <DetailIcon name="leaf" />
-                  <div>
-                    <h3 className="text-sm font-semibold">Rodeado de</h3>
-                    <p className="mt-1 text-sm text-[#65715f]">
-                      {detalle.entorno}
-                    </p>
-                    <p className="mt-1 text-xs text-[#65715f]">
-                      Clima: {detalle.clima}
-                    </p>
-                  </div>
-                </div>
-              </div>
             </section>
             <section className={panel} aria-labelledby="especies-titulo">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <h2 id="especies-titulo" className={titulo}>
                   <Icon name="bee" />
-                  Especies registradas
+                  Tipos de abejas
                 </h2>
-                <span className="rounded-full bg-[#edf1e7] px-3 py-2 text-xs">
-                  {totalCajas + totalJobones} colonias
-                </span>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[#65715f]">
-                Pulsa una fotografía para verla completa y conocer más. Las
-                grabaciones se incorporarán cuando las proporcione el centro.
+                Amplía una fotografía para conocer mejor cada abeja. Los audios
+                se agregarán cuando los proporcione el centro.
               </p>
               <div className="mt-5 grid gap-4">
-                {detalle.colonias.map((c) => {
-                  const especie = especiesDetalle[c.especie];
+                {detalle.abejas.map((nombreAbeja) => {
+                  const especie = especiesDetalle[nombreAbeja];
                   return (
                     <article
-                      key={c.especie}
+                      key={nombreAbeja}
                       className="rounded-2xl border border-solid border-[#e2e7db] bg-[#fafbf7] p-3 sm:p-4"
                     >
                       <div className="flex items-center gap-3">
                         <button
                           className="shrink-0 overflow-hidden rounded-xl border-0 bg-[#edf1e7] p-0"
                           onClick={() =>
-                            abrir({ tipo: "especie", registro: c })
+                            abrir({ tipo: "especie", registro: { especie: nombreAbeja } })
                           }
-                          aria-label={`Ver información de ${c.especie}`}
+                          aria-label={`Ver información de ${nombreAbeja}`}
                         >
                           <img
                             src={imagenDetalle(especie.imagen)}
-                            alt={`Ilustración de abeja para ${c.especie}; identificación pendiente de validar`}
+                            alt={`Ilustración de abeja para ${nombreAbeja}; identificación pendiente de validar`}
                             className="block h-20 w-20 object-cover"
                           />
                         </button>
                         <button
                           className="min-h-11 min-w-0 border-0 bg-transparent p-0 text-left text-[#163e2c]"
                           onClick={() =>
-                            abrir({ tipo: "especie", registro: c })
+                            abrir({ tipo: "especie", registro: { especie: nombreAbeja } })
                           }
                         >
                           <span className="block text-base font-bold italic">
-                            {c.especie}
+                            {nombreAbeja}
                           </span>
                           <span className="mt-1 block text-sm text-[#65715f]">
                             {especie.nombreComun}
@@ -353,21 +341,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
                         </button>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-2">
-                        {botonAudio(c.especie, especie)}
-                        <button
-                          className={`${claro} bg-[#edf1e7]`}
-                          onClick={() => abrir({ tipo: "cajas", registro: c })}
-                        >
-                          <DetailIcon name="box" size={19} />
-                          {c.cajas} cajas
-                        </button>
-                        <button
-                          className={`${claro} bg-[#fff3d2]`}
-                          onClick={() => abrir({ tipo: "cajas", registro: c })}
-                        >
-                          <DetailIcon name="jar" size={19} />
-                          {c.jobones} jobones
-                        </button>
+                        {botonAudio(nombreAbeja, especie)}
                       </div>
                     </article>
                   );
@@ -404,29 +378,17 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
               </span>
             </button>
             <div className={panel}>
-              <h2 className="text-base font-bold">De un vistazo</h2>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-[#edf1e7] p-3">
-                  <p className="text-2xl font-bold">{totalCajas}</p>
-                  <p className="mt-1 text-xs text-[#65715f]">
-                    Cajas racionales
-                  </p>
-                </div>
-                <div className="rounded-xl bg-[#fff3d2] p-3">
-                  <p className="text-2xl font-bold">{totalJobones}</p>
-                  <p className="mt-1 text-xs text-[#65715f]">Jobones</p>
-                </div>
-              </div>
-              <p className="mt-4 text-sm leading-relaxed text-[#65715f]">
-                {detalle.colonias.length} especies registradas. Consulta la
-                ficha de cada una para ver su imagen y sus colonias.
+              <h2 className="text-base font-bold">¿Quieres saber más?</h2>
+              <p className="mt-3 text-sm leading-relaxed text-[#65715f]">
+                Consulta con el responsable sobre los productos que ofrece y la
+                información que desea compartir de su meliponario.
               </p>
               <button
                 className={`${verde} mt-5 w-full`}
                 onClick={() => abrir({ tipo: "responsable" })}
               >
                 <DetailIcon name="phone" size={19} />
-                Contactar productor
+                Contactar al responsable
               </button>
             </div>
           </aside>
@@ -608,9 +570,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
                 ? modal.registro.especie
                 : modal?.tipo === "producto"
                   ? modal.producto.nombre
-                  : modal?.tipo === "cajas"
-                    ? "Cajas y jobones"
-                    : modal?.tipo === "ubicacion"
+                  : modal?.tipo === "ubicacion"
                       ? "Ubicación del meliponario"
                       : "Galería del meliponario"}
           </h2>
@@ -701,36 +661,12 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
             <p className="mt-3 rounded-xl bg-[#fff3d2] p-3 text-sm leading-relaxed text-[#765310]">
               {especiesDetalle[modal.registro.especie].nota}
             </p>
-            <p className="my-4 text-sm">
-              En este meliponario: {modal.registro.cajas} cajas racionales y{" "}
-              {modal.registro.jobones} jobones.
-            </p>
             {botonAudio(
               modal.registro.especie,
               especiesDetalle[modal.registro.especie],
             )}
             <p className="mt-3 text-sm text-[#9a3d24]" role="status">
               {sonido.error}
-            </p>
-          </>
-        )}
-        {modal?.tipo === "cajas" && (
-          <>
-            <h3 className="text-lg italic">{modal.registro.especie}</h3>
-            <div className="my-5 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-[#edf1e7] p-4">
-                <p className="text-3xl font-bold">{modal.registro.cajas}</p>
-                <p className="mt-2 text-sm">Cajas racionales</p>
-              </div>
-              <div className="rounded-xl bg-[#fff3d2] p-4">
-                <p className="text-3xl font-bold">{modal.registro.jobones}</p>
-                <p className="mt-2 text-sm">Jobones</p>
-              </div>
-            </div>
-            <p className="text-sm leading-relaxed text-[#65715f]">
-              Cantidades del registro de demostración. Estos controles permiten
-              consultar la información; las modificaciones se harán desde el
-              área administrativa.
             </p>
           </>
         )}

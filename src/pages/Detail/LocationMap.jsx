@@ -9,7 +9,6 @@ export default function LocationMap({ coordenadas, nombre, ampliado = false }) {
   const [intento, setIntento] = useState(0);
   const [lat, lng] = coordenadas;
   useEffect(() => {
-    setError(false);
     const map = L.map(host.current, {
       zoomControl: ampliado,
       scrollWheelZoom: false,
@@ -65,7 +64,10 @@ export default function LocationMap({ coordenadas, nombre, ampliado = false }) {
           No se pudo cargar el mapa.{" "}
           <button
             className="min-h-11 border-0 bg-transparent font-semibold text-[#164c35] underline"
-            onClick={() => setIntento((n) => n + 1)}
+            onClick={() => {
+              setError(false);
+              setIntento((n) => n + 1);
+            }}
           >
             Reintentar
           </button>
