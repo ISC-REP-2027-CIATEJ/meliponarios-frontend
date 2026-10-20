@@ -25,8 +25,194 @@ const verde = `${boton} bg-[#123f2d] text-white enabled:hover:bg-[#23583e]`;
 const titulo = "flex items-center gap-2 text-xl font-bold tracking-tight";
 const panel =
   "rounded-2xl border border-solid border-[#e0e5d8] bg-white p-5 sm:p-6";
+const botonNavegacion =
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-solid border-[#d8ded3] px-5 py-2 text-sm font-semibold text-[#163e2c] transition-colors hover:bg-[#e9eee3]";
 
-export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
+function CuentaSesionDetalle({ user, sessionReady, onLogin, onLogout }) {
+  const [abierta, setAbierta] = useState(false);
+  const [cerrando, setCerrando] = useState(false);
+  const [error, setError] = useState("");
+  const nombre = user?.name?.trim() || "Mi cuenta";
+  const inicial = (user?.name?.trim() || user?.email || "U")
+    .charAt(0)
+    .toUpperCase();
+
+  async function cerrarSesion() {
+    if (!onLogout || cerrando) return;
+    setCerrando(true);
+    setError("");
+    try {
+      await onLogout();
+      setAbierta(false);
+    } catch (err) {
+      setError(err.message || "No se pudo cerrar la sesión.");
+    } finally {
+      setCerrando(false);
+    }
+  }
+
+  if (!sessionReady)
+    return (
+      <span className="px-3 text-sm text-[#637063]" role="status">
+        Comprobando sesión…
+      </span>
+    );
+
+  if (!user)
+    return onLogin ? (
+      <button
+        className={`${botonNavegacion} bg-white`}
+        type="button"
+        onClick={onLogin}
+      >
+        Iniciar sesión <Icon name="arrow" />
+      </button>
+    ) : null;
+
+  return (
+    <div className="relative">
+      <button
+        className={`${botonNavegacion} bg-white`}
+        type="button"
+        aria-expanded={abierta}
+        aria-controls="opciones-cuenta-detalle"
+        onClick={() => {
+          setAbierta(!abierta);
+          setError("");
+        }}
+      >
+        <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8edde] text-sm font-bold">
+          {inicial}
+        </span>
+        <span className="flex min-w-0 flex-col items-start text-left leading-tight">
+          <span className="max-w-[145px] truncate">{nombre}</span>
+          <span className="flex items-center gap-1 text-[10px] font-medium text-[#80682a]">
+            <Icon name="bee" size={12} />
+            <span className="max-w-[145px] truncate">
+              {user.roleName || "Rol no disponible"}
+            </span>
+          </span>
+        </span>
+        <span
+          className={`grid size-7 shrink-0 place-items-center rounded-full bg-[#edf1e7] text-[#607250] transition-transform ${abierta ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        </span>
+      </button>
+      {abierta && (
+        <div
+          id="opciones-cuenta-detalle"
+          className="absolute right-0 top-full z-[1200] mt-2 min-w-60 rounded-2xl border border-solid border-[#dce1d4] bg-white p-4 text-left shadow-lg"
+        >
+          <p className="text-sm font-semibold">{nombre}</p>
+          <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#80682a]">
+            <Icon name="bee" size={14} />
+            {user.roleName || "Rol no disponible"}
+          </p>
+          {user.email && (
+            <p className="mt-3 break-all text-xs text-[#637063]">
+              {user.email}
+            </p>
+          )}
+          {error && (
+            <p
+              role="alert"
+              className="mt-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]"
+            >
+              {error}
+            </p>
+          )}
+          <button
+            className="mt-4 min-h-10 w-full rounded-lg border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm hover:bg-[#edf1e7]"
+            type="button"
+            onClick={cerrarSesion}
+            disabled={!onLogout || cerrando}
+          >
+            {cerrando ? "Cerrando sesión…" : "Cerrar sesión"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CabeceraDetalle({
+  onExplore,
+  onMap,
+  onLogin,
+  user,
+  sessionReady,
+  onLogout,
+}) {
+  return (
+    <header className="border-0 border-b border-solid border-[#e0e5d7] bg-white">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
+        <div className="flex items-center gap-3">
+          <span className="text-[#ad7f25]">
+            <Icon name="bee" size={34} />
+          </span>
+          <div>
+            <span className="text-2xl font-extrabold tracking-tight">
+              KaabMap
+            </span>
+            <p className="pt-1 text-[10px] tracking-[0.2em]">
+              MELIPONARIOS DE YUCATÁN
+            </p>
+          </div>
+        </div>
+        <nav
+          aria-label="Navegación principal"
+          className="flex flex-wrap items-center gap-2"
+        >
+          <button
+            className={botonNavegacion + " bg-white"}
+            type="button"
+            onClick={onExplore}
+          >
+            Explorar
+          </button>
+          <button
+            className={botonNavegacion + " bg-white"}
+            type="button"
+            onClick={onMap}
+          >
+            <Icon name="map" />
+            Mapa
+          </button>
+          <CuentaSesionDetalle
+            user={user}
+            sessionReady={sessionReady}
+            onLogin={onLogin}
+            onLogout={onLogout}
+          />
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+export default function DetailPage({
+  id,
+  onBack,
+  onExplore,
+  onMap,
+  onLogin,
+  user,
+  sessionReady = true,
+  onLogout,
+}) {
   const sitio = meliponarios.find((m) => m.id === id && m.estado === "Activo");
   const detalle = sitio ? detalleMeliponarios[id] : null;
   const [foto, setFoto] = useState(0);
@@ -46,15 +232,25 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
   }, []);
   if (!sitio || !detalle)
     return (
-      <main className="detail-page mx-auto max-w-xl px-5 py-16 text-[#163e2c]">
-        <h1 className="text-3xl">No encontramos ese meliponario</h1>
-        <p className="my-5">
-          La dirección no corresponde a un registro disponible.
-        </p>
-        <button className={verde} onClick={onExplore}>
-          Volver a Explorar
-        </button>
-      </main>
+      <div className="detail-page min-h-screen bg-[#f8f7f1] text-[#163e2c]">
+        <CabeceraDetalle
+          onExplore={onExplore}
+          onMap={onMap}
+          onLogin={onLogin}
+          user={user}
+          sessionReady={sessionReady}
+          onLogout={onLogout}
+        />
+        <main className="mx-auto max-w-xl px-5 py-16">
+          <h1 className="text-3xl">No encontramos ese meliponario</h1>
+          <p className="my-5">
+            La dirección no corresponde a un registro disponible.
+          </p>
+          <button className={verde} onClick={onExplore}>
+            Volver a Explorar
+          </button>
+        </main>
+      </div>
     );
 
   const productos = detalle.productos.map((key) => ({
@@ -129,31 +325,14 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
 
   return (
     <div className="detail-page min-h-screen bg-[#f8f7f1] text-[#163e2c]">
-      <header className="border-0 border-b border-solid border-[#e0e5d7] bg-white">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 lg:px-8">
-          <div className="flex items-center gap-3">
-            <span className="text-[#ad7f25]">
-              <Icon name="bee" size={34} />
-            </span>
-            <span className="text-2xl font-extrabold">KaabMap</span>
-          </div>
-          <nav
-            aria-label="Navegación principal"
-            className="flex flex-wrap gap-2"
-          >
-            <button className={claro} onClick={onExplore}>
-              Explorar
-            </button>
-            <button className={claro} onClick={onMap}>
-              <Icon name="map" />
-              Mapa
-            </button>
-            <button className={claro} onClick={onLogin}>
-              Iniciar sesión
-            </button>
-          </nav>
-        </div>
-      </header>
+      <CabeceraDetalle
+        onExplore={onExplore}
+        onMap={onMap}
+        onLogin={onLogin}
+        user={user}
+        sessionReady={sessionReady}
+        onLogout={onLogout}
+      />
       <main className="mx-auto max-w-7xl px-5 pb-12 pt-5 lg:px-8">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <button
