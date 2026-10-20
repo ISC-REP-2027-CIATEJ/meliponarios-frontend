@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { meliponarios } from "../../data/meliponarios";
 import {
   detalleMeliponarios,
-  especiesDetalle,
+  abejasDetalle,
   productosDetalle,
 } from "../../data/detalleMeliponarios";
 import { ubicacionesDemo } from "../../data/ubicacionesDemo";
@@ -26,40 +26,9 @@ const titulo = "flex items-center gap-2 text-xl font-bold tracking-tight";
 const panel =
   "rounded-2xl border border-solid border-[#e0e5d8] bg-white p-5 sm:p-6";
 
-function CuentaSesion({ user, sessionReady, onLogin, onLogout }) {
-  const [abierta, setAbierta] = useState(false);
-  const [cerrando, setCerrando] = useState(false);
-  const [error, setError] = useState("");
-  const nombre = user?.name?.trim() || "Mi cuenta";
-  const inicial = (user?.name?.trim() || user?.email || "U").charAt(0).toUpperCase();
-  async function cerrarSesion() {
-    if (!onLogout || cerrando) return;
-    setCerrando(true);
-    setError("");
-    try {
-      await onLogout();
-      setAbierta(false);
-    } catch (fallo) {
-      setError(fallo.message || "No se pudo cerrar la sesión.");
-    } finally {
-      setCerrando(false);
-    }
-  }
-  if (!sessionReady) return <span className="px-3 text-sm text-[#637063]" role="status">Comprobando sesión…</span>;
-  if (!user) return <button type="button" className={claro} onClick={onLogin}>Iniciar sesión</button>;
-  return <div className="relative">
-    <button type="button" className={`${claro} bg-white`} aria-expanded={abierta} aria-controls="opciones-cuenta-ficha" onClick={() => { setAbierta(!abierta); setError(""); }}>
-      <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8edde] text-sm font-bold">{inicial}</span>
-      <span className="flex min-w-0 flex-col items-start text-left leading-tight"><span className="max-w-[145px] truncate">{nombre}</span><span className="flex items-center gap-1 text-[10px] font-medium text-[#80682a]"><Icon name="bee" size={12}/><span className="max-w-[145px] truncate">{user.roleName || "Rol no disponible"}</span></span></span>
-      <span aria-hidden="true" className={`transition-transform ${abierta ? "rotate-180" : ""}`}>⌄</span>
-    </button>
-    {abierta && <div id="opciones-cuenta-ficha" className="absolute right-0 top-full z-30 mt-2 min-w-60 rounded-2xl border border-solid border-[#dce1d4] bg-white p-4 text-left shadow-lg"><p className="text-sm font-semibold">{nombre}</p><p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#80682a]"><Icon name="bee" size={14}/>{user.roleName || "Rol no disponible"}</p>{user.email && <p className="mt-3 break-all text-xs text-[#637063]">{user.email}</p>}{error && <p role="alert" className="mt-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]">{error}</p>}<button type="button" className="mt-4 min-h-10 w-full rounded-lg border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm hover:bg-[#edf1e7]" onClick={cerrarSesion} disabled={cerrando}>{cerrando ? "Cerrando sesión…" : "Cerrar sesión"}</button></div>}
-  </div>;
-}
-
-export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user, sessionReady = true, onLogout }) {
+export default function DetailPage({ id, onBack, onExplore, onMap, onLogin }) {
   const sitio = meliponarios.find((m) => m.id === id && m.estado === "Activo");
-  const detalle = detalleMeliponarios[id];
+  const detalle = sitio ? detalleMeliponarios[id] : null;
   const [foto, setFoto] = useState(0);
   const [categoria, setCategoria] = useState("Todos");
   const [modal, setModal] = useState(null);
@@ -71,6 +40,9 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
     cabecera.current?.focus({ preventScroll: true });
+    return () => {
+      compartirSolicitud.current++;
+    };
   }, []);
   if (!sitio || !detalle)
     return (
@@ -176,7 +148,9 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
               <Icon name="map" />
               Mapa
             </button>
-            <CuentaSesion user={user} sessionReady={sessionReady} onLogin={onLogin} onLogout={onLogout} />
+            <button className={claro} onClick={onLogin}>
+              Iniciar sesión
+            </button>
           </nav>
         </div>
       </header>
@@ -260,11 +234,13 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
               <Icon name="pin" size={18} />
               {sitio.municipio}, Yucatán
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <span className="flex flex-wrap items-center gap-2 rounded-full bg-[#e8eddf] px-3 py-2 text-xs">
-                <Icon name="bee" size={16} />
-                <span>Tipos de abejas: {sitio.especies.join(" · ")}</span>
-              </span>
+            <div className="mt-4 flex flex-wrap gap-2" aria-label="Tipos de abejas registradas">
+              {detalle.abejas.map((abeja) => (
+                <span key={abeja.especie} className="flex items-center gap-2 rounded-full bg-[#e8eddf] px-3 py-2 text-xs">
+                  <Icon name="bee" size={16} />
+                  {abeja.especie}
+                </span>
+              ))}
             </div>
           </div>
           <div>
@@ -290,50 +266,50 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
                 {detalle.descripcion}
               </p>
             </section>
-            <section className={panel} aria-labelledby="especies-titulo">
+            <section className={panel} aria-labelledby="abejas-titulo">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 id="especies-titulo" className={titulo}>
+                <h2 id="abejas-titulo" className={titulo}>
                   <Icon name="bee" />
-                  Tipos de abejas
+                  Abejas registradas
                 </h2>
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[#65715f]">
-                Amplía una fotografía para conocer mejor cada abeja. Los audios
-                se agregarán cuando los proporcione el centro.
+                Pulsa una fotografía para ampliarla y conocer más sobre cada tipo de abeja. Las
+                grabaciones se incorporarán cuando las proporcione el centro.
               </p>
               <div className="mt-5 grid gap-4">
-                {detalle.abejas.map((nombreAbeja) => {
-                  const especie = especiesDetalle[nombreAbeja];
+                {detalle.abejas.map((c) => {
+                  const abeja = abejasDetalle[c.especie];
                   return (
                     <article
-                      key={nombreAbeja}
+                      key={c.especie}
                       className="rounded-2xl border border-solid border-[#e2e7db] bg-[#fafbf7] p-3 sm:p-4"
                     >
                       <div className="flex items-center gap-3">
                         <button
                           className="shrink-0 overflow-hidden rounded-xl border-0 bg-[#edf1e7] p-0"
                           onClick={() =>
-                            abrir({ tipo: "especie", registro: { especie: nombreAbeja } })
+                            abrir({ tipo: "abeja", registro: c })
                           }
-                          aria-label={`Ver información de ${nombreAbeja}`}
+                          aria-label={`Ver información de ${c.especie}`}
                         >
                           <img
-                            src={imagenDetalle(especie.imagen)}
-                            alt={`Ilustración de abeja para ${nombreAbeja}; identificación pendiente de validar`}
+                            src={imagenDetalle(abeja.imagen)}
+                            alt={`Ilustración de abeja para ${c.especie}; identificación pendiente de validar`}
                             className="block h-20 w-20 object-cover"
                           />
                         </button>
                         <button
                           className="min-h-11 min-w-0 border-0 bg-transparent p-0 text-left text-[#163e2c]"
                           onClick={() =>
-                            abrir({ tipo: "especie", registro: { especie: nombreAbeja } })
+                            abrir({ tipo: "abeja", registro: c })
                           }
                         >
                           <span className="block text-base font-bold italic">
-                            {nombreAbeja}
+                            {c.especie}
                           </span>
                           <span className="mt-1 block text-sm text-[#65715f]">
-                            {especie.nombreComun}
+                            {abeja.nombreComun}
                           </span>
                           <span className="mt-2 block text-xs text-[#916e22]">
                             Imagen ilustrativa · ampliar ↗
@@ -341,7 +317,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
                         </button>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center gap-2">
-                        {botonAudio(nombreAbeja, especie)}
+                        {botonAudio(c.especie, abeja)}
                       </div>
                     </article>
                   );
@@ -352,10 +328,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
               </p>
             </section>
           </div>
-          <aside
-            className="grid gap-4 lg:sticky lg:top-5"
-            aria-label="Responsable y resumen"
-          >
+          <aside className="grid gap-4 lg:sticky lg:top-5" aria-label="Responsable">
             <button
               className={`${panel} w-full text-left text-[#163e2c] hover:bg-[#f2f5ec]`}
               onClick={() => abrir({ tipo: "responsable" })}
@@ -377,20 +350,6 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
                 Conocer al responsable <Icon name="arrow" size={18} />
               </span>
             </button>
-            <div className={panel}>
-              <h2 className="text-base font-bold">¿Quieres saber más?</h2>
-              <p className="mt-3 text-sm leading-relaxed text-[#65715f]">
-                Consulta con el responsable sobre los productos que ofrece y la
-                información que desea compartir de su meliponario.
-              </p>
-              <button
-                className={`${verde} mt-5 w-full`}
-                onClick={() => abrir({ tipo: "responsable" })}
-              >
-                <DetailIcon name="phone" size={19} />
-                Contactar al responsable
-              </button>
-            </div>
           </aside>
         </div>
         <section className={`${panel} mt-6`} aria-labelledby="productos-titulo">
@@ -540,7 +499,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
         <p className="mt-8 text-center text-xs leading-relaxed text-[#65715f]">
           KaabMap · Conocer, conservar y conectar.
           <br />
-          Datos de ejemplo e imágenes ilustrativas. Sin compras ni reseñas.
+          Datos e imágenes de demostración; la información real se incorporará con el centro.
         </p>
       </main>
       <dialog
@@ -566,13 +525,13 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
           <h2 id="modal-titulo" className="text-xl font-bold">
             {modal?.tipo === "responsable"
               ? "Conoce al responsable"
-              : modal?.tipo === "especie"
+              : modal?.tipo === "abeja"
                 ? modal.registro.especie
                 : modal?.tipo === "producto"
                   ? modal.producto.nombre
                   : modal?.tipo === "ubicacion"
-                      ? "Ubicación del meliponario"
-                      : "Galería del meliponario"}
+                    ? "Ubicación del meliponario"
+                    : "Galería del meliponario"}
           </h2>
           <button
             className={`${claro} shrink-0`}
@@ -643,27 +602,27 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
             )}
           </>
         )}
-        {modal?.tipo === "especie" && (
+        {modal?.tipo === "abeja" && (
           <>
             <img
               src={imagenDetalle(
-                especiesDetalle[modal.registro.especie].imagen,
+                abejasDetalle[modal.registro.especie].imagen,
               )}
               alt={`Imagen ilustrativa ampliada para ${modal.registro.especie}`}
               className="block max-h-[45svh] w-full rounded-2xl object-contain"
             />
             <p className="mt-4 font-semibold">
-              {especiesDetalle[modal.registro.especie].nombreComun}
+              {abejasDetalle[modal.registro.especie].nombreComun}
             </p>
             <p className="mt-3 leading-relaxed text-[#5b6957]">
-              {especiesDetalle[modal.registro.especie].descripcion}
+              {abejasDetalle[modal.registro.especie].descripcion}
             </p>
             <p className="mt-3 rounded-xl bg-[#fff3d2] p-3 text-sm leading-relaxed text-[#765310]">
-              {especiesDetalle[modal.registro.especie].nota}
+              {abejasDetalle[modal.registro.especie].nota}
             </p>
             {botonAudio(
               modal.registro.especie,
-              especiesDetalle[modal.registro.especie],
+              abejasDetalle[modal.registro.especie],
             )}
             <p className="mt-3 text-sm text-[#9a3d24]" role="status">
               {sonido.error}
