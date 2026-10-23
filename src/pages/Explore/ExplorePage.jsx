@@ -1,3 +1,4 @@
+import { ClientAccountLinks, ClientRegistrationButton } from '../../components/ClientNavigation';
 import { useRef, useState } from 'react';
 import { meliponarios, filtrarMeliponarios } from '../../data/meliponarios';
 import Icon from './Icon';
@@ -88,6 +89,7 @@ export default function ExplorePage({ onLogin, onLogout, onOpenMap, onOpenDetail
                     {user.roleName || 'Rol no disponible'}
                   </p>
                   {user.email && <p className="mb-4 break-all text-xs text-[#637063]">{user.email}</p>}
+                  <ClientAccountLinks user={user}/>
                   {errorCuenta && <p className="mb-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]" role="alert">{errorCuenta}</p>}
                   <button
                     className="min-h-10 w-full rounded-lg border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm text-[#163e2c] hover:bg-[#edf1e7]"
@@ -109,7 +111,7 @@ export default function ExplorePage({ onLogin, onLogout, onOpenMap, onOpenDetail
     <main id="contenido" tabIndex={-1} className="mx-auto max-w-7xl px-5 pb-14 pt-10 lg:px-10">
       <section aria-labelledby="titulo" className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div><p className="mb-3 text-xs font-bold tracking-[0.2em] text-[#7a662e]">ABEJAS NATIVAS · SABERES LOCALES</p><h1 id="titulo" className="text-3xl font-extrabold tracking-tight sm:text-4xl">Explorar meliponarios</h1><p className="mt-3 max-w-xl text-base leading-relaxed text-[#637063]">Conoce a quienes cuidan de las abejas sin aguijón.<br className="hidden sm:block"/> Descubre sus meliponarios y lo que producen.</p></div>
-        <span className="rounded-full bg-[#e8edde] px-4 py-2 text-xs font-semibold">Datos e imágenes de demostración</span>
+        <div className="flex flex-wrap items-center gap-3"><ClientRegistrationButton user={user} sessionReady={sessionReady}/><span className="rounded-full bg-[#e8edde] px-4 py-2 text-xs font-semibold">Datos e imágenes de demostración</span></div>
       </section>
       <section aria-label="Buscar y filtrar" className="mb-9">
         <div className="flex items-center gap-2 rounded-2xl border border-solid border-[#dce1d4] bg-white p-2 pl-5 shadow-sm">

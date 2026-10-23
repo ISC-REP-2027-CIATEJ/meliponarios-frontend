@@ -1,3 +1,4 @@
+import { ClientAccountLinks } from '../../components/ClientNavigation';
 import { useEffect, useRef, useState } from "react";
 import { meliponarios } from "../../data/meliponarios";
 import {
@@ -126,7 +127,8 @@ function CuentaSesionDetalle({ user, sessionReady, onLogin, onLogout }) {
               {user.email}
             </p>
           )}
-          {error && (
+          <ClientAccountLinks user={user}/>
+      {error && (
             <p
               role="alert"
               className="mt-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]"

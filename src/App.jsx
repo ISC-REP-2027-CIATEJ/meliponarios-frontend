@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { esRutaCliente } from './features/ownerMeliponarios/routes';
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import LoginPage from "./pages/Login/LoginPage";
 import RegisterPage from "./pages/Register/RegisterPage";
 import ExplorePage from "./pages/Explore/ExplorePage";
@@ -7,9 +8,11 @@ import DetailPage from "./pages/Detail/DetailPage";
 import { filtrosIniciales } from "./data/filtros";
 import { getSession, logout } from "./services/authService";
 
+const OwnerMeliponariosPage = lazy(() => import('./pages/Owner/OwnerMeliponariosPage'));
+
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return ["explorar", "mapa", "register", "login"].includes(pagina) ||
+  return esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
     pagina.startsWith("meliponario/")
     ? pagina
     : "explorar";
@@ -22,7 +25,22 @@ export default function App() {
   const origen = useRef("explorar");
 
   useEffect(() => {
-    const actualizar = () => setPage(paginaActual());
+    let hashAnterior = window.location.hash;
+    const actualizar = () => {
+      const destino = window.location.hash;
+      const continuar = () => {
+        hashAnterior = destino;
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + destino);
+        setPage(paginaActual());
+        return true;
+      };
+      const event = new CustomEvent('kaabmap:before-owner-leave', { cancelable: true, detail: { continuar } });
+      if (!window.dispatchEvent(event)) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + hashAnterior);
+        return;
+      }
+      continuar();
+    };
     window.addEventListener("hashchange", actualizar);
     return () => window.removeEventListener("hashchange", actualizar);
   }, []);
@@ -70,6 +88,9 @@ export default function App() {
     origen.current = desde;
     ir(`meliponario/${encodeURIComponent(id)}`);
   }
+
+  if (esRutaCliente(page))
+    return <Suspense fallback={<main role="status" className="min-h-screen bg-[#f8f7f1] p-10 text-[#163e2c]">Preparando tu espacio…</main>}><OwnerMeliponariosPage route={page} user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page.startsWith("meliponario/"))
     return (
       <DetailPage

@@ -1,3 +1,4 @@
+import { ClientAccountLinks } from '../../components/ClientNavigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { meliponarios, municipios, especies, filtrarMeliponarios } from '../../data/meliponarios';
 import { filtrosIniciales } from '../../data/filtros';
@@ -66,6 +67,7 @@ function CuentaSesion({ user, sessionReady, onLogin, onLogout }) {
       <p className="text-sm font-semibold">{nombre}</p>
       <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-[#80682a]"><Icon name="bee" size={14}/>{user.roleName || 'Rol no disponible'}</p>
       {user.email && <p className="mt-3 break-all text-xs text-[#637063]">{user.email}</p>}
+      <ClientAccountLinks user={user}/>
       {error && <p role="alert" className="mt-3 rounded-lg bg-[#fff0ed] p-2 text-xs text-[#842a20]">{error}</p>}
       <button className="mt-4 min-h-10 w-full rounded-lg border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm hover:bg-[#edf1e7]" type="button" onClick={cerrarSesion} disabled={cerrando}>{cerrando ? 'Cerrando sesión…' : 'Cerrar sesión'}</button>
     </div>}
