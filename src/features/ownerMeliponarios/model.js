@@ -1,6 +1,7 @@
 // Modelo LOCAL de la interfaz. No es un contrato de base de datos.
 // El almacenamiento del navegador permite ensayar borradores y solicitudes;
 // enviado_demo no envía datos al centro ni constituye una aprobación pública.
+import { normalizarProducto, validarProducto } from './productos.js';
 const PREFIJO = 'kaabmap:meliponarios-propios:demo:v1:';
 const texto = value => typeof value === 'string' ? value.trim() : '';
 
@@ -16,6 +17,7 @@ export function crearFormulario(record = null) {
     descripcion: record?.descripcion ?? '',
     referencia: record?.referencia ?? '',
     abejas: (record?.abejas ?? []).map(abeja => ({ ...abeja })),
+    productos: (record?.productos ?? []).map(producto => ({ ...producto })),
     coordenadas: record?.coordenadas ? [...record.coordenadas] : null,
     vendeMiel: record?.vendeMiel ?? false,
     recibeVisitas: record?.recibeVisitas ?? false,
@@ -60,6 +62,16 @@ export function validarFormulario(form, catalogos, { enviar = false } = {}) {
   const localidades = catalogos?.localidades ?? [];
   const abejasCatalogo = catalogos?.abejas ?? [];
   const lista = Array.isArray(form?.abejas) ? form.abejas : [];
+  const productos = form?.productos ?? [];
+  if (!Array.isArray(productos)) errores.productos = 'Revisa los productos agregados.';
+  else for (let index = 0; index < productos.length; index++) {
+    const error = validarProducto(productos[index], productos.filter((_, posicion) => posicion !== index));
+    if (error) { errores.productos = error; break; }
+  }
+  if (Array.isArray(productos)) {
+    const ids = productos.map(item => item?.id).filter(Boolean);
+    if (new Set(ids).size !== ids.length) errores.productos = 'Revisa los productos: hay un identificador repetido.';
+  }
   if (!Array.isArray(form?.abejas)) errores.abejas = 'Revisa los tipos de abejas agregados.';
 
   if (enviar && !texto(form?.nombre)) errores.nombre = 'Escribe el nombre del meliponario.';
@@ -129,6 +141,9 @@ function registroValido(record, userId) {
     typeof record.vendeMiel === 'boolean' && typeof record.recibeVisitas === 'boolean' &&
     Array.isArray(record.abejas) && record.abejas.every(bee => !validarAbeja(bee)) &&
     new Set(record.abejas.map(bee => bee.tipoId)).size === record.abejas.length &&
+    (record.productos === undefined || Array.isArray(record.productos) && record.productos.every((producto, index, lista) =>
+      typeof producto?.id === 'string' && producto.id.trim() && !validarProducto(producto, lista.filter((_, posicion) => posicion !== index))) &&
+      new Set(record.productos.map(producto => producto.id)).size === record.productos.length) &&
     (record.estado === 'borrador' ? coordenadasBorradorValidas(record.coordenadas) : coordenadasValidas(record.coordenadas)) &&
     (record.estado === 'borrador' ? record.enviadoEn === null : typeof record.enviadoEn === 'string');
 }
@@ -176,6 +191,7 @@ export function guardarRegistro({ userId, form, id = null, enviar = false, catal
     ...datos,
     nombre: texto(datos.nombre), descripcion: texto(datos.descripcion), referencia: texto(datos.referencia),
     abejas: datos.abejas.map(bee => ({ tipoId: bee.tipoId, cajas: Number(bee.cajas), jobones: Number(bee.jobones) })),
+    productos: datos.productos.map(normalizarProducto),
     id: existente?.id ?? 'demo-meliponario-' + (globalThis.crypto?.randomUUID?.() ?? Date.now() + '-' + Math.random().toString(36).slice(2)),
     ownerId: userId,
     estado: enviar ? 'enviado_demo' : 'borrador',
@@ -189,5 +205,17 @@ export function guardarRegistro({ userId, form, id = null, enviar = false, catal
   } catch {
     throw new Error('No se pudo guardar. El almacenamiento del navegador puede estar lleno o bloqueado.');
   }
+  return record;
+}
+
+// Solo borra borradores locales del propietario. Las solicitudes enviadas siguen bloqueadas.
+export function eliminarBorrador({ userId, id }, storage) {
+  storage = almacenDisponible(storage);
+  const registros = leerRegistros(userId, storage);
+  const record = registros.find(item => item.id === id);
+  if (!record) throw new Error('No encontramos este borrador en tu cuenta. Actualiza la lista.');
+  if (record.estado !== 'borrador') throw new Error('Una solicitud enviada no se puede eliminar desde este espacio.');
+  try { storage.setItem(clave(userId), JSON.stringify(registros.filter(item => item.id !== id))); }
+  catch { throw new Error('No se pudo eliminar el borrador. Tus registros se conservaron.'); }
   return record;
 }

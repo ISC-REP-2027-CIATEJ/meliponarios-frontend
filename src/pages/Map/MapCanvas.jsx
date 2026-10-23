@@ -31,7 +31,7 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
   useEffect(() => { elegir.current = onSelect; }, [onSelect]);
 
   useEffect(() => {
-    const map = L.map(contenedor.current, { zoomControl: false, minZoom: 3, maxZoom: 19, scrollWheelZoom: false });
+    const map = L.map(contenedor.current, { zoomControl: false, zoomAnimation: false, minZoom: 3, maxZoom: 19, scrollWheelZoom: false });
     mapa.current = map;
     map.fitBounds(limitesPeninsula, { padding: [18, 18] });
     L.control.zoom({ position: 'topright', zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(map);
@@ -66,11 +66,12 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
         const items = grupo.puntos;
         const agrupado = items.length > 1;
         const punto = items[0];
+        const privado = items.some(item => item.privadoDemo);
         const centro = agrupado ? L.latLngBounds(items.map(m => m.coordenadas)).getCenter() : punto.coordenadas;
-        const nombre = agrupado ? `Acercar grupo de ${items.length} meliponarios` : punto.nombre;
+        const nombre = agrupado ? `Acercar grupo de ${items.length} meliponarios` : punto.privadoDemo ? `Privado: ${punto.nombre}. ${punto.etiquetaPrivada}` : punto.nombre;
         const clasesOferta = { miel: 'kaab-miel', difusion: 'kaab-difusion', ambos: 'kaab-ambos' };
         const icon = L.divIcon({
-          className: `kaab-marker ${agrupado ? 'kaab-cluster' : clasesOferta[punto.ofertaVisualDemo] || 'kaab-sin-clasificar'} ${items.some(m => m.id === seleccionId) ? 'kaab-elegido' : ''}`,
+          className: `kaab-marker ${privado ? 'kaab-privado' : ''} ${agrupado ? 'kaab-cluster' : clasesOferta[punto.ofertaVisualDemo] || 'kaab-sin-clasificar'} ${items.some(m => m.id === seleccionId) ? 'kaab-elegido' : ''}`,
           html: `<span class="kaab-pin">${abeja}${agrupado ? `<b>${items.length}</b>` : ''}</span>`,
           iconSize: [46, 52], iconAnchor: [23, 48],
         });

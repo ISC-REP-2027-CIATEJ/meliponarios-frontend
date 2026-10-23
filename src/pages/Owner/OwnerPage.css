@@ -13,6 +13,7 @@
 .owner-page fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 .owner-page label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
 .owner-page input[type=checkbox] { width: 22px; height: 22px; padding: 0; accent-color: #164c35; box-shadow: none; }
+.owner-page input[type=radio] { width: 19px; height: 19px; padding: 0; accent-color: #164c35; box-shadow: none; flex-shrink: 0; }
 .owner-page dialog { width: min(92vw, 570px); max-height: 90svh; overflow: auto; border: 1px solid #d7dfd0; border-radius: 24px; padding: 28px; color: #163e2c; background: #fff; }
 .owner-page dialog::backdrop { background: #082f21aa; backdrop-filter: blur(4px); }
 .owner-page .owner-map { position: relative; isolation: isolate; }

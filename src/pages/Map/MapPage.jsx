@@ -1,3 +1,6 @@
+import { OwnMapNotice, PrivateMapSelection } from './OwnMapLayer';
+import { useOwnMapRecords } from './useOwnMapRecords';
+import { abrirRegistroPropio } from '../../features/ownerMeliponarios/privateMap';
 import { ClientAccountLinks } from '../../components/ClientNavigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { meliponarios, municipios, especies, filtrarMeliponarios } from '../../data/meliponarios';
@@ -87,7 +90,10 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
   const [localizando, setLocalizando] = useState(false);
   const [aviso, setAviso] = useState('');
   const [fotoAbierta, setFotoAbierta] = useState(null);
-  const resultados = useMemo(() => filtrarMeliponarios(meliponariosPublicosDemo, filtros), [filtros]);
+  const propios = useOwnMapRecords(user, sessionReady);
+  const resultados = useMemo(() => [...filtrarMeliponarios(meliponariosPublicosDemo, filtros), ...filtrarMeliponarios(propios.puntos, { ...filtros, activos: false })], [filtros, propios.puntos]);
+  const municipiosVisibles = useMemo(() => [...new Set([...municipios, ...propios.puntos.map(point => point.municipio)])].sort(), [propios.puntos]);
+  const abejasVisibles = useMemo(() => [...new Set([...especies, ...propios.puntos.flatMap(point => point.especies)])].sort(), [propios.puntos]);
   const ordenados = useMemo(() => ubicacion ? [...resultados].sort((a, b) => distanciaKm(ubicacion.coordenadas, a.coordenadas) - distanciaKm(ubicacion.coordenadas, b.coordenadas)) : resultados, [resultados, ubicacion]);
   const seleccionado = resultados.find(m => m.id === seleccionId);
   const hayFiltros = Object.values(filtros).some(Boolean);
@@ -142,6 +148,8 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
     dialogo.current?.showModal();
   }
   function abrirDetalle() {
+    const rutaPropia = abrirRegistroPropio(seleccionado);
+    if (rutaPropia) { window.location.assign(rutaPropia); return; }
     if (seleccionado && onOpenDetail) onOpenDetail(seleccionado.id);
   }
 
@@ -156,10 +164,11 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
     <main className="mx-auto max-w-[1600px] px-4 pb-8 pt-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-extrabold sm:text-3xl">Explora la península</h1><p className="mt-2 text-sm leading-relaxed text-[#65715f]">Yucatán</p></div><span className="rounded-full bg-[#fff0bf] px-4 py-2 text-xs font-semibold text-[#765310]">Ubicaciones de demostración</span></div>
 
+      <OwnMapNotice state={propios}/>
       <section aria-label="Buscar meliponarios en el mapa" className="mb-5">
         <div className="flex items-center gap-3 rounded-2xl border border-solid border-[#dce1d4] bg-white px-4 py-2 shadow-sm"><Icon name="search"/><label className="sr-only" htmlFor="buscar-mapa">Buscar meliponario, municipio o tipo de abeja</label><input id="buscar-mapa" className="h-12 min-w-0 flex-1 border-0 bg-transparent text-base text-[#163e2c]" type="search" value={filtros.busqueda} onChange={e => cambiar('busqueda', e.target.value)} placeholder="¿Dónde quieres explorar?"/><button type="button" className={claro} aria-label="Filtros" aria-expanded={filtrosAbiertos} aria-controls="filtros-mapa" onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}><Icon name="filter"/><span className="hidden sm:inline">Filtros</span></button></div>
         <div className="mt-3 flex flex-wrap gap-2"><button type="button" className={ubicacion ? oscuro : claro} disabled={localizando} onClick={localizar}><Icon name="pin"/>{localizando ? 'Buscando ubicación…' : 'Cerca de mí'}</button><button type="button" className={filtros.conProductos ? oscuro : claro} aria-pressed={filtros.conProductos} onClick={() => cambiar('conProductos', !filtros.conProductos)}><Icon name="bag"/>Con productos</button><button type="button" className={filtros.activos ? oscuro : claro} aria-pressed={filtros.activos} onClick={() => cambiar('activos', !filtros.activos)}><Icon name="sun"/>Activos</button>{hayFiltros && <button type="button" className={claro} onClick={limpiarFiltros}>Limpiar filtros</button>}{ubicacion && <button type="button" className={claro} onClick={quitarUbicacion}>Quitar mi ubicación</button>}</div>
-        {filtrosAbiertos && <div id="filtros-mapa" className="mt-3 grid gap-4 rounded-2xl bg-[#edf1e7] p-4 sm:grid-cols-2"><label className="grid gap-2 text-sm font-semibold">Municipio<select aria-label="Municipio" className="min-h-12 w-full rounded-lg border border-solid border-[#d1d8c9] bg-white px-3" value={filtros.municipio} onChange={e => cambiar('municipio', e.target.value)}><option value="">Todos los municipios</option>{municipios.map(m => <option key={m}>{m}</option>)}</select></label><label className="grid gap-2 text-sm font-semibold">Tipo de abeja<select aria-label="Tipo de abeja" className="min-h-12 w-full rounded-lg border border-solid border-[#d1d8c9] bg-white px-3" value={filtros.especie} onChange={e => cambiar('especie', e.target.value)}><option value="">Todos los tipos de abejas</option>{especies.map(e => <option key={e}>{e}</option>)}</select></label></div>}
+        {filtrosAbiertos && <div id="filtros-mapa" className="mt-3 grid gap-4 rounded-2xl bg-[#edf1e7] p-4 sm:grid-cols-2"><label className="grid gap-2 text-sm font-semibold">Municipio<select aria-label="Municipio" className="min-h-12 w-full rounded-lg border border-solid border-[#d1d8c9] bg-white px-3" value={filtros.municipio} onChange={e => cambiar('municipio', e.target.value)}><option value="">Todos los municipios</option>{municipiosVisibles.map(m => <option key={m}>{m}</option>)}</select></label><label className="grid gap-2 text-sm font-semibold">Tipo de abeja<select aria-label="Tipo de abeja" className="min-h-12 w-full rounded-lg border border-solid border-[#d1d8c9] bg-white px-3" value={filtros.especie} onChange={e => cambiar('especie', e.target.value)}><option value="">Todos los tipos de abejas</option>{abejasVisibles.map(e => <option key={e}>{e}</option>)}</select></label></div>}
         {aviso && <p className="mt-3 rounded-xl bg-[#edf1e7] px-4 py-3 text-sm leading-relaxed" role="status">{aviso}</p>}
       </section>
 
@@ -185,6 +194,7 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
               <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4"><p className="text-xs font-bold uppercase tracking-wide text-[#8a6a20]">Meliponario seleccionado</p><button type="button" className="grid size-10 shrink-0 place-items-center rounded-full border-0 bg-[#edf1e7] text-lg" aria-label="Cerrar selección" onClick={() => setSeleccionId(null)}>×</button></div>
               <button type="button" className="block w-full border-0 bg-[#edf1e7] p-0" onClick={() => abrirFoto(seleccionado)} aria-label={`Ampliar foto de ${seleccionado.nombre}`}><img src={imagen(seleccionado.imagen)} alt={`Imagen ilustrativa de ${seleccionado.nombre}`} className="block aspect-[3/2] w-full object-cover"/></button>
               <div className="p-5">
+                <PrivateMapSelection point={seleccionado}/>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h3 className="text-xl font-bold leading-snug"><button type="button" className="border-0 bg-transparent p-0 text-left text-inherit hover:underline" onClick={abrirDetalle}>{seleccionado.nombre}</button></h3>
                   {seleccionado.ofertaVisualDemo && <span className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: tiposOferta[seleccionado.ofertaVisualDemo].fondo, color: tiposOferta[seleccionado.ofertaVisualDemo].texto }}><span className="size-2.5 rounded-full" style={{ backgroundColor: tiposOferta[seleccionado.ofertaVisualDemo].punto }}/>{tiposOferta[seleccionado.ofertaVisualDemo].etiqueta}</span>}
@@ -196,13 +206,13 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
                   {seleccionado.productos.length ? <div className="mt-3 flex flex-wrap gap-2">{seleccionado.productos.map(producto => <span key={producto} className="rounded-full bg-white px-3 py-2 text-xs text-[#465843]">{producto}</span>)}</div> : <p className="mt-2 text-sm text-[#65715f]">Este perfil todavía no publica productos.</p>}
                 </div>
                 <div className="mt-4 rounded-2xl border border-solid border-[#e6eadf] p-4"><p className="text-xs font-bold uppercase tracking-wide text-[#65715f]">Tipos de abejas</p><p className="mt-2 text-sm leading-relaxed">{seleccionado.especies.join(' · ')}</p></div>
-                <button type="button" className={`${oscuro} mt-5 w-full justify-between rounded-xl`} onClick={abrirDetalle} disabled={!onOpenDetail}>Conocer más del meliponario <Icon name="arrow"/></button>
+                <button type="button" className={`${oscuro} mt-5 w-full justify-between rounded-xl`} onClick={abrirDetalle} disabled={!seleccionado.privadoDemo && !onOpenDetail}>{seleccionado.privadoDemo ? 'Ver mi registro' : 'Conocer más del meliponario'} <Icon name="arrow"/></button>
               </div>
             </> : <div className="p-5"><span className="text-[#b58a28]"><Icon name="bee" size={32}/></span><h3 className="mt-3 text-base font-bold">Cada punto, una historia</h3><p className="mt-2 text-sm leading-relaxed text-[#65715f]">Selecciona un marcador para ver sus productos, conocer sus abejas y abrir la ficha completa.</p></div>}
           </div>
 
           {!resultados.length && <div className="rounded-2xl bg-white p-5"><h3 className="text-base font-semibold">No hay coincidencias</h3><p className="my-3 text-sm text-[#65715f]">Prueba otro municipio o quita algunos filtros.</p><button type="button" className={claro} onClick={limpiarFiltros}>Ver todos</button></div>}
-          <div className="grid gap-3">{ordenados.map(m => <button key={m.id} type="button" aria-pressed={seleccionado?.id === m.id} onClick={() => seleccionar(m.id)} className={`flex w-full items-center gap-3 rounded-2xl border border-solid p-3 text-left transition-colors hover:bg-[#edf1e7] ${seleccionado?.id === m.id ? 'border-[#164c35] bg-[#edf1e7]' : 'border-[#e0e5d7] bg-white'}`}><img src={imagen(m.imagen)} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover"/><span className="min-w-0 flex-1"><span className="block text-sm font-bold leading-snug">{m.nombre}</span><span className="mt-1 block text-xs text-[#65715f]">{m.municipio} · Yucatán</span><span className="mt-2 flex items-center gap-2 text-xs"><span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.ofertaVisualDemo ? tiposOferta[m.ofertaVisualDemo].punto : '#8b9987' }}/>{m.ofertaVisualDemo ? tiposOferta[m.ofertaVisualDemo].etiqueta : 'Oferta por confirmar'}</span><span className="mt-2 block truncate text-xs text-[#65715f]">{m.productos.length ? m.productos.join(' · ') : 'Productos por publicar'}</span>{ubicacion && <span className="mt-2 block text-xs text-[#765310]">≈ {distanciaKm(ubicacion.coordenadas, m.coordenadas).toLocaleString('es-MX', { maximumFractionDigits: 1 })} km · punto demo</span>}</span></button>)}</div>
+          <div className="grid gap-3">{ordenados.map(m => <button key={m.id} type="button" aria-pressed={seleccionado?.id === m.id} onClick={() => seleccionar(m.id)} className={`flex w-full items-center gap-3 rounded-2xl border border-solid p-3 text-left transition-colors hover:bg-[#edf1e7] ${seleccionado?.id === m.id ? 'border-[#164c35] bg-[#edf1e7]' : 'border-[#e0e5d7] bg-white'}`}><img src={imagen(m.imagen)} alt="" className="h-20 w-20 shrink-0 rounded-xl object-cover"/><span className="min-w-0 flex-1"><span className="block text-sm font-bold leading-snug">{m.nombre}</span>{m.privadoDemo && <span className="mt-1 block text-xs font-bold text-[#796329]">Solo tú · {m.etiquetaPrivada}</span>}<span className="mt-1 block text-xs text-[#65715f]">{m.municipio} · Yucatán</span><span className="mt-2 flex items-center gap-2 text-xs"><span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: m.ofertaVisualDemo ? tiposOferta[m.ofertaVisualDemo].punto : '#8b9987' }}/>{m.ofertaVisualDemo ? tiposOferta[m.ofertaVisualDemo].etiqueta : 'Oferta por confirmar'}</span><span className="mt-2 block truncate text-xs text-[#65715f]">{m.productos.length ? m.productos.join(' · ') : 'Productos por publicar'}</span>{ubicacion && <span className="mt-2 block text-xs text-[#765310]">≈ {distanciaKm(ubicacion.coordenadas, m.coordenadas).toLocaleString('es-MX', { maximumFractionDigits: 1 })} km · punto demo</span>}</span></button>)}</div>
         </aside>
       </div>
     </main>
