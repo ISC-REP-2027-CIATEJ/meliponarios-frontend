@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { isAdminUser } from '../features/adminUsers/adminUsersModel.mjs';
 import Icon from '../pages/Explore/Icon';
 import { isCliente } from '../features/ownerMeliponarios/model';
 
 const navButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-solid border-[#d8ded3] bg-white px-5 py-2 text-sm font-semibold text-[#163e2c] no-underline transition-colors hover:bg-[#edf1e7]';
 
 export function ClientAccountLinks({ user }) {
+  if (isAdminUser(user)) return <a href="#administracion/usuarios" className="mb-2 flex min-h-11 items-center gap-2 rounded-xl bg-[#edf2e7] px-3 py-2 text-sm font-semibold text-[#163e2c] no-underline hover:bg-[#e1e9d7]"><Icon name="bee" size={18}/>Administrar usuarios<Icon name="arrow" size={16}/></a>;
   if (!isCliente(user)) return null;
   return <a href="#mis-meliponarios" className="mb-2 flex min-h-11 items-center gap-2 rounded-xl bg-[#edf2e7] px-3 py-2 text-sm font-semibold text-[#163e2c] no-underline hover:bg-[#e1e9d7]"><Icon name="bee" size={18}/>Mis meliponarios<Icon name="arrow" size={16}/></a>;
 }
