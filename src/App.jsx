@@ -1,3 +1,4 @@
+import { ADMIN_USERS_ROUTE } from './features/adminUsers/adminUsersModel.mjs';
 import { esRutaCliente } from './features/ownerMeliponarios/routes';
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import LoginPage from "./pages/Login/LoginPage";
@@ -8,11 +9,12 @@ import DetailPage from "./pages/Detail/DetailPage";
 import { filtrosIniciales } from "./data/filtros";
 import { getSession, logout } from "./services/authService";
 
+const AdminUsersPage = lazy(() => import('./pages/AdminUsers/AdminUsersPage'));
 const OwnerMeliponariosPage = lazy(() => import('./pages/Owner/OwnerMeliponariosPage'));
 
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
+  return pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
     pagina.startsWith("meliponario/")
     ? pagina
     : "explorar";
@@ -79,6 +81,16 @@ export default function App() {
     ir("explorar");
   }
 
+  async function actualizarCuentaAdministrativa() {
+    try {
+      const actualizada = await getSession();
+      setUser(actualizada);
+    } catch (error) {
+      setUser(null);
+      throw error;
+    }
+  }
+
   async function cerrarSesion() {
     await logout();
     setUser(null);
@@ -89,6 +101,8 @@ export default function App() {
     ir(`meliponario/${encodeURIComponent(id)}`);
   }
 
+  if (page === ADMIN_USERS_ROUTE)
+    return <Suspense fallback={<main role="status" className="min-h-screen bg-[#f8f7f1] p-10 text-[#163e2c]">Preparando administración.</main>}><AdminUsersPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion} onAccountChanged={actualizarCuentaAdministrativa}/></Suspense>;
   if (esRutaCliente(page))
     return <Suspense fallback={<main role="status" className="min-h-screen bg-[#f8f7f1] p-10 text-[#163e2c]">Preparando tu espacio…</main>}><OwnerMeliponariosPage route={page} user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page.startsWith("meliponario/"))
