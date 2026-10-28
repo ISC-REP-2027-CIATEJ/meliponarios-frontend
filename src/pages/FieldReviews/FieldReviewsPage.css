@@ -1,0 +1,15 @@
+@layer base {
+  .field-review :where(h1,h2,h3,p) { margin: 0; }
+  .field-review :where(input,select,textarea,button) { font: inherit; }
+}
+.field-review { color: #163e2c; font-family: Arial,sans-serif; }
+.field-review :where(a,button,input,textarea):focus-visible { outline: 3px solid #b18a36; outline-offset: 3px; }
+.field-review input[type=checkbox] { width: 21px; height: 21px; flex-shrink: 0; accent-color: #164c35; }
+.field-review .review-field { width: 100%; min-height: 48px; border: 1px solid #d1dcca; border-radius: 12px; padding: 12px 14px; background: #fff; color: #163e2c; }
+.field-review textarea.review-field { min-height: 120px; resize: vertical; }
+.field-review button:disabled { cursor: default; }
+.field-review dialog { position: fixed; inset: 0; margin: auto; width: min(94vw,570px); max-height: 90svh; overflow: auto; border: 1px solid #d4decc; border-radius: 24px; padding: 28px; background: #fff; color: #163e2c; }
+.field-review dialog::backdrop { background: #082f21aa; backdrop-filter: blur(3px); }
+.field-review dialog.review-photo { width: min(94vw,1000px); }
+.field-review .review-photo img { display: block; max-height: 65svh; max-width: 100%; margin: 0 auto; object-fit: contain; }
+@media(max-width:640px) { .field-review dialog { padding: 20px; } }

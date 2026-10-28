@@ -1,3 +1,4 @@
+import { FIELD_REVIEWS_ROUTE } from './features/fieldReviews/fieldReviewsModel.mjs';
 import { ADMIN_USERS_ROUTE } from './features/adminUsers/adminUsersModel.mjs';
 import { esRutaCliente } from './features/ownerMeliponarios/routes';
 import { useEffect, useRef, useState, lazy, Suspense } from 'react';
@@ -9,12 +10,14 @@ import DetailPage from "./pages/Detail/DetailPage";
 import { filtrosIniciales } from "./data/filtros";
 import { getSession, logout } from "./services/authService";
 
+const AdminAssignmentsPage = lazy(() => import('./pages/AdminAssignments/AdminAssignmentsPage'));
+const FieldReviewsPage = lazy(() => import('./pages/FieldReviews/FieldReviewsPage'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsers/AdminUsersPage'));
 const OwnerMeliponariosPage = lazy(() => import('./pages/Owner/OwnerMeliponariosPage'));
 
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
+  return pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
     pagina.startsWith("meliponario/")
     ? pagina
     : "explorar";
@@ -101,6 +104,10 @@ export default function App() {
     ir(`meliponario/${encodeURIComponent(id)}`);
   }
 
+  if (page === 'administracion/asignaciones')
+    return <Suspense fallback={<main role="status" className="p-10">Cargando asignaciones.</main>}><AdminAssignmentsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
+  if (page === FIELD_REVIEWS_ROUTE)
+    return <Suspense fallback={<main role="status" className="p-10">Cargando solicitudes.</main>}><FieldReviewsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page === ADMIN_USERS_ROUTE)
     return <Suspense fallback={<main role="status" className="min-h-screen bg-[#f8f7f1] p-10 text-[#163e2c]">Preparando administración.</main>}><AdminUsersPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion} onAccountChanged={actualizarCuentaAdministrativa}/></Suspense>;
   if (esRutaCliente(page))
