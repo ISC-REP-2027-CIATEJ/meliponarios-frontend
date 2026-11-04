@@ -100,7 +100,7 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
   useImperativeHandle(ref, () => ({
     peninsula: () => mapa.current?.fitBounds(limitesPeninsula, { padding: [18, 18] }),
     resultados: () => { if (puntos.length) mapa.current?.fitBounds(puntos.map(m => m.coordenadas), { padding: [65, 65], maxZoom: 11 }); },
-    seleccionar: punto => mapa.current?.setView(punto.coordenadas, 12),
+    seleccionar: punto => mapa.current?.setView(punto.coordenadas, punto.ubicacionAproximada ? 9 : 12),
     localizar: coordenadas => mapa.current?.setView(coordenadas, 11),
   }), [puntos]);
 

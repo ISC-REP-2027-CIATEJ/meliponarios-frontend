@@ -3,7 +3,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { mapConfig } from "../Map/mapConfig";
 
-export default function LocationMap({ coordenadas, nombre, ampliado = false }) {
+export default function LocationMap({ coordenadas, nombre, ampliado = false, aproximada = false }) {
   const host = useRef(null);
   const [error, setError] = useState(false);
   const [intento, setIntento] = useState(0);
@@ -11,13 +11,14 @@ export default function LocationMap({ coordenadas, nombre, ampliado = false }) {
   useEffect(() => {
     const map = L.map(host.current, {
       zoomControl: ampliado,
+      zoomAnimation: false,
       scrollWheelZoom: false,
       dragging: ampliado,
       touchZoom: ampliado,
       doubleClickZoom: ampliado,
       boxZoom: ampliado,
       keyboard: ampliado,
-    }).setView([lat, lng], ampliado ? 13 : 11);
+    }).setView([lat, lng], aproximada ? 9 : ampliado ? 13 : 11);
     const tiles = L.tileLayer(mapConfig.url, {
       attribution: mapConfig.attribution,
       maxZoom: 19,
@@ -47,14 +48,14 @@ export default function LocationMap({ coordenadas, nombre, ampliado = false }) {
       tiles.off();
       map.remove();
     };
-  }, [lat, lng, nombre, ampliado, intento]);
+  }, [lat, lng, nombre, ampliado, aproximada, intento]);
   return (
     <div className="relative">
       <div
         ref={host}
         className={`detalle-location rounded-2xl ${ampliado ? "h-[55svh] min-h-[300px]" : "h-56"}`}
         role="region"
-        aria-label={ampliado ? "Ubicación ampliada" : "Mapa del punto de venta"}
+        aria-label={ampliado ? "Ubicación ampliada" : "Ubicación pública del meliponario"}
       />
       {error && (
         <div
