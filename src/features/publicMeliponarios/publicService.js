@@ -4,6 +4,7 @@ import { crearApiPublica, crearClienteLecturaPublica } from './publicApi.mjs';
 
 let api;
 const cacheFotos = new Map();
+export function invalidarFotosPublicas(id) { cacheFotos.delete(id); }
 function preparar() {
   try {
     comprobarConfiguracion();

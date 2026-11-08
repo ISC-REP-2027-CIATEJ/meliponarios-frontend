@@ -148,6 +148,6 @@ export default function OwnerPublication({ userId, recordId, datosVersion = '', 
       {reasons.length > 0 && <ul className="mt-3 list-disc space-y-2 pl-5">{reasons.map(reason => <li key={reason}>{reason}</li>)}</ul>}
       {state.publicada === null && <p className="mt-3">No se pudo completar la consulta sin sesión. Los permisos guardados se muestran arriba; actualiza para comprobar su visibilidad.</p>}
     </div>}
-    <p className="mt-5 text-xs leading-relaxed text-[#697760]">La ausencia de fotografías no bloquea la publicación en tu backend actual. Su subida desde este formulario se conectará en la siguiente parte.</p>
+    <p className="mt-5 text-xs leading-relaxed text-[#697760]">La ausencia de fotografías no bloquea la publicación en tu backend actual. Puedes gestionarlas en la sección Fotografías de este formulario.</p>
   </section>;
 }
