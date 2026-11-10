@@ -1,5 +1,3 @@
-import { OwnMapNotice, PrivateMapSelection } from './OwnMapLayer';
-import { useOwnMapRecords } from './useOwnMapRecords';
 import { abrirRegistroPropio } from '../../features/ownerMeliponarios/privateMap';
 import { ClientAccountLinks } from '../../components/ClientNavigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -83,10 +81,9 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
   const [localizando, setLocalizando] = useState(false);
   const [aviso, setAviso] = useState('');
   const [fotoAbierta, setFotoAbierta] = useState(null);
-  const propios = useOwnMapRecords(user, sessionReady);
   const publicos = usePublicMeliponarios();
-  const resultados = useMemo(() => [...filtrarPublicos(publicos.items, filtros), ...filtrarPublicos(propios.puntos, { ...filtros, activos: false })], [filtros, propios.puntos, publicos.items]);
-  const municipiosVisibles = useMemo(() => [...new Set([...publicos.items.map(point => point.municipio), ...propios.puntos.map(point => point.municipio)])].sort(), [propios.puntos, publicos.items]);
+  const resultados = useMemo(() => filtrarPublicos(publicos.items, filtros), [filtros, publicos.items]);
+  const municipiosVisibles = useMemo(() => [...new Set(publicos.items.map(point => point.municipio))].sort(), [publicos.items]);
   const ordenados = useMemo(() => ubicacion ? [...resultados].sort((a, b) => distanciaKm(ubicacion.coordenadas, a.coordenadas) - distanciaKm(ubicacion.coordenadas, b.coordenadas)) : resultados, [resultados, ubicacion]);
   const seleccionado = resultados.find(m => m.id === seleccionId);
   const hayFiltros = Object.values(filtros).some(Boolean);
@@ -157,7 +154,6 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
     <main className="mx-auto max-w-[1600px] px-4 pb-8 pt-6 lg:px-8">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-extrabold sm:text-3xl">Explora la península</h1><p className="mt-2 text-sm leading-relaxed text-[#65715f]">Yucatán</p></div><span className="rounded-full bg-[#fff0bf] px-4 py-2 text-xs font-semibold text-[#765310]">Meliponarios aprobados</span></div>
 
-      <OwnMapNotice state={propios}/>
       <div className="mb-5 flex flex-wrap items-center gap-3"><button type="button" className={claro} disabled={publicos.loading} onClick={() => { setSeleccionId(null); setFotoAbierta(null); dialogo.current?.close(); publicos.recargar(); }}>Actualizar meliponarios</button>{publicos.loading && <p role="status" className="text-sm">Cargando meliponarios aprobados…</p>}{publicos.error && <p role="alert" className="text-sm text-[#842a20]">{publicos.error}</p>}</div>
       <section aria-label="Buscar meliponarios en el mapa" className="mb-5">
         <div className="flex items-center gap-3 rounded-2xl border border-solid border-[#dce1d4] bg-white px-4 py-2 shadow-sm"><Icon name="search"/><label className="sr-only" htmlFor="buscar-mapa">Buscar meliponario, municipio o localidad</label><input id="buscar-mapa" className="h-12 min-w-0 flex-1 border-0 bg-transparent text-base text-[#163e2c]" type="search" value={filtros.busqueda} onChange={e => cambiar('busqueda', e.target.value)} placeholder="¿Dónde quieres explorar?"/><button type="button" className={claro} aria-label="Filtros" aria-expanded={filtrosAbiertos} aria-controls="filtros-mapa" onClick={() => setFiltrosAbiertos(!filtrosAbiertos)}><Icon name="filter"/><span className="hidden sm:inline">Filtros</span></button></div>
@@ -188,7 +184,6 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
               <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-4"><p className="text-xs font-bold uppercase tracking-wide text-[#8a6a20]">Meliponario seleccionado</p><button type="button" className="grid size-10 shrink-0 place-items-center rounded-full border-0 bg-[#edf1e7] text-lg" aria-label="Cerrar selección" onClick={() => setSeleccionId(null)}>×</button></div>
               <button type="button" className="block w-full border-0 bg-[#edf1e7] p-0" onClick={() => abrirFoto(seleccionado)} aria-label={`Ver fotografía de ${seleccionado.nombre}`}><PublicPhoto id={seleccionado.privadoDemo ? null : seleccionado.id} nombre={seleccionado.nombre} className="aspect-[3/2] w-full"/></button>
               <div className="p-5">
-                <PrivateMapSelection point={seleccionado}/>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h3 className="text-xl font-bold leading-snug"><button type="button" className="border-0 bg-transparent p-0 text-left text-inherit hover:underline" onClick={abrirDetalle}>{seleccionado.nombre}</button></h3>
                   {seleccionado.ofertaVisualDemo && <span className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-semibold" style={{ backgroundColor: tiposOferta[seleccionado.ofertaVisualDemo].fondo, color: tiposOferta[seleccionado.ofertaVisualDemo].texto }}><span className="size-2.5 rounded-full" style={{ backgroundColor: tiposOferta[seleccionado.ofertaVisualDemo].punto }}/>{tiposOferta[seleccionado.ofertaVisualDemo].etiqueta}</span>}

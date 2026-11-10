@@ -4,8 +4,7 @@ import OwnerPhotos from './OwnerPhotos';
 import { useEffect, useRef, useState } from 'react';
 import Icon from '../Explore/Icon';
 import { OwnerHeader } from '../../components/ClientNavigation';
-import { obtenerCatalogosRegistro } from '../../features/ownerMeliponarios/catalogos';
-import { actividad, crearFormulario, eliminarBorrador, guardarRegistro, isCliente, leerRegistros, validarAbeja, validarFormulario } from '../../features/ownerMeliponarios/model';
+import { actividad, crearFormulario, isCliente, validarAbeja, validarFormulario } from '../../features/ownerMeliponarios/model';
 import OwnerMap from './OwnerMap';
 import OwnerProducts from './OwnerProducts';
 import './OwnerPage.css';
@@ -19,38 +18,23 @@ const quiet = 'inline-flex min-h-11 items-center gap-2 rounded-xl border-0 bg-tr
 function FieldError({ id, children }) { return children ? <p id={id} className="mt-2 text-sm leading-relaxed text-[#9c422c]">{children}</p> : null; }
 function Tag({ data }) { const tag = actividad(data); return <span className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold" style={{ backgroundColor: tag.fondo, color: tag.texto }}><span className="size-2 rounded-full" style={{ backgroundColor: tag.color }}/>{tag.label}</span>; }
 function StateTag({ record }) {
-  const etiquetas = { borrador: 'Borrador', correccion: 'En corrección', enviada: 'Enviada', en_revision: 'En revisión', aprobada: 'Aprobada', rechazada: 'Rechazada', enviado_demo: 'Solicitud de prueba · solo lectura', sin_solicitud: 'Estado no disponible' };
+  const etiquetas = { borrador: 'Borrador', correccion: 'En corrección', enviada: 'Enviada', en_revision: 'En revisión', aprobada: 'Registro básico aprobado', rechazada: 'Rechazada', enviado_demo: 'Solicitud de prueba · solo lectura', sin_solicitud: 'Estado no disponible' };
   return <span className={`rounded-full px-3 py-2 text-xs font-semibold ${['borrador','correccion'].includes(record.estado) ? 'bg-[#f7eac4] text-[#785a19]' : 'bg-[#e6eef7] text-[#305c80]'}`}>{etiquetas[record.estado] || 'Estado no disponible'}</span>;
 }
 function DemoNotice() { return <div className="mb-7 flex items-start gap-3 rounded-2xl border border-solid border-[#eadbb0] bg-[#fff8e6] p-4 text-sm leading-relaxed text-[#765d23]"><span aria-hidden="true" className="mt-0.5"><Icon name="bee"/></span><p><strong>Vista previa para practicar.</strong> Los catálogos son ejemplos. Tus borradores se guardan en este navegador y el envío es una simulación; todavía no se envía una solicitud al centro.</p></div>; }
 function Section({ id, number, title, description, children }) { return <section id={id} className="rounded-3xl border border-solid border-[#dde4d5] bg-white p-5 sm:p-8"><div className="mb-6 flex items-start gap-3"><span className="grid size-10 shrink-0 place-items-center rounded-full bg-[#edf2e7] text-sm font-bold text-[#49653d]">{number}</span><div><h2 className="text-xl font-bold tracking-tight">{title}</h2><p className="mt-2 text-sm leading-relaxed text-[#697760]">{description}</p></div></div>{children}</section>; }
-function snapshot(userId) { try { return { records: leerRegistros(userId), error: '' }; } catch (error) { return { records: [], error: error.message }; } }
 function dateLabel(value) { return Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value)) : 'Fecha no disponible'; }
 function validPoint(value) { return Array.isArray(value) && value.length === 2 && value.every(x => typeof x === 'number' && Number.isFinite(x)) && Math.abs(value[0]) <= 90 && Math.abs(value[1]) <= 180; }
 
 export default function OwnerMeliponariosPage({ route, user, sessionReady, onLogout }) {
   return <div className="owner-page min-h-screen bg-[#f8f7f1]">
     <OwnerHeader user={user} sessionReady={sessionReady} onLogout={onLogout}/>
-    {!sessionReady ? <main className="mx-auto max-w-6xl px-5 py-16"><p role="status">Comprobando tu sesión…</p></main> : !isCliente(user) ? <main className="mx-auto max-w-xl px-5 py-20 text-center"><span className="mx-auto mb-6 grid size-20 place-items-center rounded-full bg-[#e6ecdd] text-[#9e7929]"><Icon name="bee" size={42}/></span><h1 className="text-3xl font-extrabold">{user ? 'Este espacio es para cuentas Cliente' : 'Tu meliponario tiene un lugar aquí'}</h1><p className="my-5 text-base leading-relaxed text-[#65735d]">{user ? 'Puedes continuar explorando los meliponarios públicos desde tu cuenta actual.' : 'Inicia sesión con tu cuenta Cliente para registrar y consultar tus meliponarios.'}</p><div className="flex flex-wrap justify-center gap-3">{!user && <a href="#login" className={primary}>Iniciar sesión</a>}<a href="#explorar" className={secondary}>Volver a Explorar</a>{!user && <a href="#register" className={quiet}>Crear cuenta<Icon name="arrow" size={16}/></a>}</div></main> : <Workspace key={user.id} route={route} user={user}/>}
+    {!sessionReady ? <main className="mx-auto max-w-6xl px-5 py-16"><p role="status">Comprobando tu sesión…</p></main> : !isCliente(user) ? <main className="mx-auto max-w-xl px-5 py-20 text-center"><span className="mx-auto mb-6 grid size-20 place-items-center rounded-full bg-[#e6ecdd] text-[#9e7929]"><Icon name="bee" size={42}/></span><h1 className="text-3xl font-extrabold">{user ? 'Este espacio es para cuentas Cliente' : 'Tu meliponario tiene un lugar aquí'}</h1><p className="my-5 text-base leading-relaxed text-[#65735d]">{user ? 'Puedes continuar explorando los meliponarios públicos desde tu cuenta actual.' : 'Inicia sesión con tu cuenta Cliente para registrar y consultar tus meliponarios.'}</p><div className="flex flex-wrap justify-center gap-3">{!user && <a href="#login" className={primary}>Iniciar sesión</a>}<a href="#explorar" className={secondary}>Volver a Explorar</a>{!user && <a href="#register" className={quiet}>Crear cuenta<Icon name="arrow" size={16}/></a>}</div></main> : <RemoteWorkspace key={user.id} route={route} user={user}/>}
   </div>;
 }
 
 function RemoteNotice() {
   return <div role="note" className="mb-7 rounded-2xl border border-solid border-[#b9d3ad] bg-[#edf5e7] p-4 text-sm leading-relaxed text-[#315239]"><strong>Guardado real en Supabase.</strong> En este paso puedes guardar y recuperar tus borradores privados. Nombre y localidad son obligatorios; las abejas y la ubicación pueden completarse después. La localidad necesita una zona de atención activa de Yucatán. Guarda el borrador y usa Enviar a revisión. El control de publicación está disponible en cada registro guardado. Las fotografías se gestionan en su apartado; el catálogo real de productos sigue pendiente.</div>;
-}
-
-function Workspace({ route, user }) {
-  const [mode, setMode] = useState('supabase');
-  function changeMode(next) {
-    if (next === mode) return;
-    const continuar = () => { setMode(next); window.location.hash = 'mis-meliponarios'; return true; };
-    const event = new CustomEvent('kaabmap:before-owner-leave', { cancelable: true, detail: { continuar } });
-    if (window.dispatchEvent(event)) continuar();
-  }
-  return <>
-    <div className="mx-auto max-w-6xl px-5 pt-7 lg:px-8"><div className="flex flex-wrap items-center gap-3 rounded-2xl border border-solid border-[#d5dfcb] bg-white p-4"><span className="mr-1 text-sm font-bold">Trabajar con:</span>{[['supabase','Supabase · registros reales'],['demo','Demostración local']].map(([value,label]) => <button key={value} type="button" aria-pressed={mode === value} className={`${secondary} ${mode === value ? '!border-[#65844e] !bg-[#eaf1e1]' : ''}`} onClick={() => changeMode(value)}>{label}</button>)}<p className="w-full text-xs leading-relaxed text-[#66735e]">Cada opción mantiene sus registros separados. Los borradores locales existentes se conservan y no se suben automáticamente.</p></div></div>
-    {mode === 'supabase' ? <RemoteWorkspace key={user.id} route={route} user={user}/> : <LocalWorkspace key={user.id} route={route} user={user}/>}
-  </>;
 }
 
 function RemoteWorkspace({ route, user }) {
@@ -94,55 +78,8 @@ function RemoteWorkspace({ route, user }) {
   const record = recordId ? data.records.find(item => item.id === recordId) : null;
   return <main className="mx-auto max-w-6xl px-5 pb-16 pt-8 lg:px-8">
     {message && <p role="status" className="mb-5 rounded-2xl bg-[#e5efdc] p-4 text-sm font-semibold">{message}</p>}
-    {data.error && <div role="alert" className="mb-6 rounded-2xl border border-solid border-[#e4b59f] bg-[#fff3ed] p-5"><h1 className="text-xl font-bold">No pudimos actualizar desde Supabase</h1><p className="my-4">{data.error}</p><button type="button" className={secondary} onClick={refresh}>Volver a cargar</button><p className="mt-3 text-xs">No se ha cambiado al modo de demostración ni se han borrado registros.</p></div>}
-    {data.loading ? <p role="status" className="py-12 text-center">Consultando tu cuenta y tus registros en Supabase…</p> : data.catalog && (route === 'mis-meliponarios' ? <OwnerList remote records={data.records} catalog={data.catalog} onRefresh={refresh}/> : route.startsWith('mi-meliponario/') && !record ? <div className="rounded-3xl bg-white p-10 text-center"><h1 className="text-2xl font-bold">No encontramos este registro en tu cuenta</h1><p className="my-5">Comprueba que estés usando la cuenta y el modo correctos. Los registros de demostración siguen en su apartado local.</p><a href="#mis-meliponarios" className={secondary}>Mis meliponarios</a></div> : <OwnerForm key={record?.id || 'nuevo'} remote onSubmitted={refresh} onPublicacionGuardada={publicationSaved} userId={user.id} record={record} catalog={data.catalog} onSave={save} storageBlocked={false}/>)}
-  </main>;
-}
-
-function LocalWorkspace({ route, user }) {
-  const [stored, setStored] = useState(() => snapshot(user.id));
-  const [catalog, setCatalog] = useState({ loading: true, value: null, error: '' });
-  const [attempt, setAttempt] = useState(0);
-  const [message, setMessage] = useState('');
-  const [deleting, setDeleting] = useState(null);
-  const [deleteError, setDeleteError] = useState('');
-  const deleteDialog = useRef(null);
-  useEffect(() => {
-    let active = true;
-    obtenerCatalogosRegistro().then(value => { if (active) setCatalog({ loading: false, value, error: '' }); }).catch(error => { if (active) setCatalog({ loading: false, value: null, error: error.message || 'No pudimos cargar las opciones del formulario.' }); });
-    return () => { active = false; };
-  }, [attempt]);
-  useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [route]);
-  function save(form, id, enviar) {
-    if (stored.error) throw new Error('Primero vuelve a cargar tus registros. No pudimos leer los borradores de este navegador.');
-    const saved = guardarRegistro({ userId: user.id, form, id, enviar, catalogos: catalog.value });
-    const fresh = snapshot(user.id);
-    setStored(previous => fresh.error ? { records: [saved, ...previous.records.filter(item => item.id !== saved.id)], error: fresh.error } : fresh);
-    setMessage(enviar ? 'Solicitud de prueba guardada y bloqueada. Aún no se ha enviado al centro.' : 'Borrador guardado en este navegador. Puedes retomarlo cuando quieras.');
-    return saved;
-  }
-  function requestDelete(record) {
-    if (record.estado !== 'borrador') return;
-    setDeleting(record); setDeleteError(''); deleteDialog.current.showModal();
-  }
-  function confirmDelete() {
-    if (!deleting) return;
-    try {
-      eliminarBorrador({ userId: user.id, id: deleting.id });
-      setStored(snapshot(user.id)); setMessage('Borrador eliminado de tu cuenta en este navegador.');
-      setDeleting(null); deleteDialog.current.close(); window.location.hash = 'mis-meliponarios';
-    } catch (error) { setDeleteError(error.message || 'No pudimos eliminar el borrador.'); }
-  }
-  let recordId = null;
-  if (route.startsWith('mi-meliponario/')) { try { recordId = decodeURIComponent(route.slice('mi-meliponario/'.length)); } catch { recordId = ''; } }
-  const record = recordId ? stored.records.find(item => item.id === recordId) : null;
-  return <main className="mx-auto max-w-6xl px-5 pb-16 pt-8 sm:pt-10 lg:px-8">
-    <dialog ref={deleteDialog} aria-labelledby="eliminar-borrador-titulo"><p className="text-xs font-bold tracking-wide text-[#996332]">ELIMINAR BORRADOR</p><h2 id="eliminar-borrador-titulo" className="mt-3 text-2xl font-bold">¿Eliminar este borrador?</h2><p className="mt-4 break-words text-base leading-relaxed">Se eliminará <strong>{deleting?.nombre || 'Borrador sin nombre'}</strong>, incluidos sus productos y datos guardados en este navegador.</p><p className="my-4 text-sm text-[#6b775f]">Esta acción no se puede deshacer. Las solicitudes enviadas no se eliminan desde aquí.</p>{deleteError && <p role="alert" className="mb-4 text-sm text-[#9c422c]">{deleteError}</p>}<div className="flex flex-wrap justify-end gap-3"><button type="button" className={secondary} onClick={() => { setDeleting(null); deleteDialog.current.close(); }}>Conservar borrador</button><button type="button" className="min-h-12 rounded-full border-0 bg-[#9b4930] px-5 py-3 text-sm font-bold text-white" onClick={confirmDelete}>Sí, eliminar borrador</button></div></dialog>
-    {message && <div role="status" className="mb-5 flex items-center justify-between gap-3 rounded-2xl bg-[#e5efdc] p-4 text-sm font-semibold"><p>{message}</p><button type="button" aria-label="Cerrar aviso" className={quiet} onClick={() => setMessage('')}><Icon name="close" size={17}/></button></div>}
-    {catalog.loading ? <p role="status" className="py-14 text-center">Preparando tu espacio…</p> : catalog.error ? <div role="alert" className="rounded-3xl bg-white p-8"><h1 className="text-2xl font-bold">No pudimos cargar el formulario</h1><p className="my-4">{catalog.error}</p><button className={secondary} onClick={() => { setCatalog({ loading: true, value: null, error: '' }); setAttempt(n => n + 1); }}>Reintentar</button></div> : <>
-      {stored.error && <div role="alert" className="mb-6 rounded-2xl border border-solid border-[#e4b59f] bg-[#fff3ed] p-5"><p className="font-bold">No pudimos recuperar tus borradores</p><p className="my-3 text-sm">{stored.error} Los datos guardados no se han reemplazado.</p><button type="button" className={secondary} onClick={() => setStored(snapshot(user.id))}>Volver a cargar</button></div>}
-      {route === 'mis-meliponarios' ? <OwnerList onDelete={requestDelete} records={stored.records} catalog={catalog.value} onRefresh={() => { setStored(snapshot(user.id)); setMessage('Lista actualizada desde este navegador.'); }}/> : route.startsWith('mi-meliponario/') && !record ? <div className="rounded-3xl bg-white p-10 text-center"><h1 className="text-2xl font-bold">No encontramos este registro en tu cuenta</h1><p className="my-5 text-[#687760]">Puede ser de otro navegador o de otra cuenta. Los registros de esta prueba se guardan únicamente aquí.</p><a href="#mis-meliponarios" className={secondary}>Mis meliponarios</a></div> : <OwnerForm key={`${record?.id || 'nuevo'}:${record?.estado || 'borrador'}`} record={record} catalog={catalog.value} onSave={save} onDelete={requestDelete} storageBlocked={Boolean(stored.error)}/>}
-    </>}
+    {data.error && <div role="alert" className="mb-6 rounded-2xl border border-solid border-[#e4b59f] bg-[#fff3ed] p-5"><h1 className="text-xl font-bold">No pudimos actualizar desde Supabase</h1><p className="my-4">{data.error}</p><button type="button" className={secondary} onClick={refresh}>Volver a cargar</button><p className="mt-3 text-xs">Tus registros se conservan en tu cuenta. Puedes volver a intentar la consulta.</p></div>}
+    {data.loading ? <p role="status" className="py-12 text-center">Consultando tu cuenta y tus registros en Supabase…</p> : data.catalog && (route === 'mis-meliponarios' ? <OwnerList remote records={data.records} catalog={data.catalog} onRefresh={refresh}/> : route.startsWith('mi-meliponario/') && !record ? <div className="rounded-3xl bg-white p-10 text-center"><h1 className="text-2xl font-bold">No encontramos este registro en tu cuenta</h1><p className="my-5">Comprueba que estés usando la cuenta propietaria del meliponario.</p><a href="#mis-meliponarios" className={secondary}>Mis meliponarios</a></div> : <OwnerForm key={record?.id || 'nuevo'} remote onSubmitted={refresh} onPublicacionGuardada={publicationSaved} userId={user.id} record={record} catalog={data.catalog} onSave={save} storageBlocked={false}/>)}
   </main>;
 }
 
@@ -298,7 +235,7 @@ function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote =
         <fieldset disabled={readOnly} className="grid gap-4 sm:grid-cols-2">{[['vendeMiel','Venta de miel','Ofreces miel de las abejas que cuidas.','bag'],['recibeVisitas','Visitas y difusión','Compartes el conocimiento de las abejas nativas.','bee']].map(([key,title,description,icon]) => <label key={key} className={`!mb-0 flex cursor-pointer items-start gap-3 rounded-2xl border border-solid p-5 ${form[key] ? 'border-[#88a675] bg-[#edf4e7]' : 'border-[#dce4d3] bg-white'}`}><input type="checkbox" checked={form[key]} onChange={event => change(key,event.target.checked)}/><span><span className="flex items-center gap-2 text-base font-bold"><Icon name={icon} size={20}/>{title}</span><span className="mt-2 block text-sm font-normal leading-relaxed text-[#6c7963]">{description}</span></span></label>)}</fieldset><div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl bg-[#f5f7f0] p-4"><span className="text-sm text-[#697760]">Así se identificará:</span><Tag data={form}/></div><FieldError>{errors.actividades}</FieldError>
       </Section>
       <Section id="productos" number="5" title="Los productos que ofreces" description="Prepara tarjetas con el nombre y la presentación. Puedes mostrar miel y otros productos sin publicar precios.">
-        {remote ? <p className="rounded-2xl bg-[#fff8e6] p-5 text-sm leading-relaxed">El catálogo real de productos todavía está pendiente. Las tarjetas que ya preparaste se conservan en Demostración local. Las fotografías reales se gestionan en la sección Fotografías.</p> : <OwnerProducts value={form.productos} readOnly={readOnly} editorRef={productsEditor} onDirty={() => setDirty(true)} onChange={value => change('productos',value)}/>}
+        {remote ? <p className="rounded-2xl bg-[#fff8e6] p-5 text-sm leading-relaxed">El catálogo de productos todavía no está disponible en este formulario. Las fotografías reales se gestionan en la sección Fotografías.</p> : <OwnerProducts value={form.productos} readOnly={readOnly} editorRef={productsEditor} onDirty={() => setDirty(true)} onChange={value => change('productos',value)}/>}
         <FieldError>{errors.productos}</FieldError>
       </Section>
       {!readOnly ? <div className="sticky bottom-3 z-[900] rounded-3xl border border-solid border-[#d5dfcb] bg-white/95 p-4 shadow-lg backdrop-blur-sm sm:p-5"><div className="flex flex-wrap items-center justify-between gap-4"><div><p className="text-sm font-bold">{dirty ? 'Tienes cambios por guardar' : record ? 'Borrador guardado' : 'Avanza a tu ritmo'}</p><p className="mt-1 max-w-md text-xs leading-relaxed text-[#6c7963]">{remote ? 'El borrador real necesita nombre y localidad. Después de guardar usa Enviar a revisión, encima del formulario.' : 'El borrador acepta datos incompletos. El envío de prueba guarda el registro y bloquea su edición.'}</p></div><div className="flex flex-wrap gap-2"><button className={secondary} type="button" disabled={saving || storageBlocked || gps.loading || uncertain || locationsLoading} onClick={() => { if (validate(false)) save(false); }}>Guardar borrador</button>{!remote && <button className={primary} type="submit" disabled={ saving || storageBlocked || gps.loading || uncertain || locationsLoading}>{'Guardar y enviar solicitud'}<Icon name="arrow" size={18}/></button>}</div></div></div> : <a href="#mis-meliponarios" className={`${secondary} justify-self-start`}>Volver a Mis meliponarios</a>}
