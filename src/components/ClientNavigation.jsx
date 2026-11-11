@@ -7,7 +7,7 @@ const navButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounde
 
 export function ClientAccountLinks({ user }) {
   if (isAdminUser(user)) return <><a href="#administracion/usuarios" className={`${navButton} mb-2 w-full`}>Administrar usuarios</a><a href="#administracion/asignaciones" className={`${navButton} mb-2 w-full`}>Asignaciones</a></>;
-  if ([3,4].includes(Number(user?.roleId))) return <a href="#campo/solicitudes" className={`${navButton} mb-2 w-full`}>{Number(user.roleId) === 4 ? 'Revisar solicitudes' : 'Solicitudes de mis zonas'}</a>;
+  if ([3,4].includes(Number(user?.roleId))) return <><a href="#campo/solicitudes" className={`${navButton} mb-2 w-full`}>Solicitudes básicas</a><a href="#campo/asignaciones-tecnicas" className={`${navButton} mb-2 w-full`}>{Number(user.roleId) === 3 ? 'Asignar meliponarios' : 'Meliponarios asignados'}</a></>;
   if (!isCliente(user)) return null;
   return <a href="#mis-meliponarios" className="mb-2 flex min-h-11 items-center gap-2 rounded-xl bg-[#edf2e7] px-3 py-2 text-sm font-semibold text-[#163e2c] no-underline hover:bg-[#e1e9d7]"><Icon name="bee" size={18}/>Mis meliponarios<Icon name="arrow" size={16}/></a>;
 }
