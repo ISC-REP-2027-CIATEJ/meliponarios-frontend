@@ -4,6 +4,7 @@ import {
   asignarZona, finalizarAsignacion, obtenerAsignaciones,
 } from '../../features/territory/territoryService';
 import Icon from '../Explore/Icon';
+import { ADMIN_COVERAGE_ROUTE } from '../../features/territory/territoryCoverageModel.mjs';
 import {
   agruparAsignaciones, cuentasDisponibles, filtrarPersonas, nombreCuenta,
 } from './adminAssignmentsModel.mjs';
@@ -209,6 +210,7 @@ function Workspace({ userId }) {
       <nav className="za-nav" aria-label="Administración">
         <a href="#administracion/usuarios">Usuarios</a>
         <a href="#administracion/asignaciones" aria-current="page">Asignaciones</a>
+        <a href={'#' + ADMIN_COVERAGE_ROUTE}>Cobertura territorial</a>
       </nav>
       <div className="za-hero-body">
         <div>
