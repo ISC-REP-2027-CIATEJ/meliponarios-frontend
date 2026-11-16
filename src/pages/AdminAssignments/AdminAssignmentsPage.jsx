@@ -10,6 +10,11 @@ const name = row => [row.nombre, row.apellidos].filter(Boolean).join(' ');
 const role = id => Number(id) === 3 ? 'Coordinador de campo' : Number(id) === 4 ? 'Trabajador de campo' : 'Otro rol';
 const date = value => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Mexico_City' }).format(new Date(value)) : 'Sin fecha de finalización';
 
+function accountsWithoutZone({ usuarios, asignaciones }) {
+  const assigned = new Set(asignaciones.filter(row => row.vigente).map(row => row.usuario_id));
+  return usuarios.filter(account => !assigned.has(account.id));
+}
+
 function AccountIdentifier({ id, roleId }) {
   const [message, setMessage] = useState('');
   const input = useRef(null);
@@ -44,6 +49,7 @@ function Workspace({ userId }) {
   const [observaciones, setObservaciones] = useState('');
   const [draftId, setDraftId] = useState(() => crypto.randomUUID());
   const [filter, setFilter] = useState('vigentes');
+  const [accountFilter, setAccountFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
@@ -55,7 +61,14 @@ function Workspace({ userId }) {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     let active = true;
-    obtenerAsignaciones(userId).then(value => { if (active) { setData(value); setError(''); setBlocked(false); } })
+    obtenerAsignaciones(userId).then(value => {
+      if (!active) return;
+      const available = accountsWithoutZone(value);
+      setUsuarioId(id => available.some(account => account.id === id) ? id : '');
+      setData(value);
+      setError('');
+      setBlocked(false);
+    })
       .catch(failure => { if (active) { setData(empty); setError(failure.message); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -66,25 +79,49 @@ function Workspace({ userId }) {
     if (!modal && element.open) element.close();
   }, [modal]);
   function refresh() { setLoading(true); setData(empty); setError(''); setRevision(value => value + 1); }
-  const target = data.usuarios.find(row => row.id === usuarioId);
+  const available = useMemo(() => accountsWithoutZone(data), [data]);
+  const target = available.find(row => row.id === usuarioId);
   const zone = data.zonas.find(row => row.id === zonaId);
-  const filtered = useMemo(() => data.asignaciones.filter(row =>
-    (filter === 'todas' || (filter === 'vigentes' ? row.vigente : !row.vigente)) &&
-    `${name(row)} ${row.zona}`.toLocaleLowerCase('es-MX').includes(search.trim().toLocaleLowerCase('es-MX'))), [data, filter, search]);
+  const assignedAccounts = useMemo(() => {
+    const accounts = new Map(data.asignaciones.map(row => [row.usuario_id, row]));
+    return [...accounts.values()].sort((a, b) => name(a).localeCompare(name(b), 'es-MX'));
+  }, [data.asignaciones]);
+  const selectedAccountFilter = assignedAccounts.some(row => row.usuario_id === accountFilter) ? accountFilter : '';
+  const filtered = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('es-MX');
+    return data.asignaciones.filter(row =>
+      (!selectedAccountFilter || row.usuario_id === selectedAccountFilter) &&
+      (filter === 'todas' || (filter === 'vigentes' ? row.vigente : !row.vigente)) &&
+      `${name(row)} ${row.zona}`.toLocaleLowerCase('es-MX').includes(query));
+  }, [data.asignaciones, selectedAccountFilter, filter, search]);
   const pages = Math.max(1, Math.ceil(filtered.length / 20));
   const currentPage = Math.min(page, pages);
   const visible = filtered.slice((currentPage - 1) * 20, currentPage * 20);
+  const formDisabled = loading || saving || blocked || Boolean(error) || available.length === 0;
+  const canAssign = !formDisabled && Boolean(target && zone?.activo && zone.localidades.length);
   function confirmCreate(event) {
     event.preventDefault();
-    if (loading || saving || error || blocked || !target || !zone?.activo || !zone.localidades.length) return;
-    setModal({ type: 'crear', usuario: target, zona: zone, values: { id: draftId, usuarioId, zonaId, observaciones } });
+    if (!canAssign) return;
+    setModal({ type: 'crear', usuario: target, zona: zone, values: { id: draftId, usuarioId: target.id, zonaId: zone.id, observaciones } });
   }
   async function save() {
     if (lock.current || !modal || blocked) return;
-    lock.current = true; setSaving(true); setError('');
+    lock.current = true; setSaving(true); setError(''); setNotice('');
     try {
-      if (modal.type === 'crear') await asignarZona(userId, modal.values);
-      else await finalizarAsignacion(userId, modal.row.id);
+      if (modal.type === 'crear') {
+        const current = await obtenerAsignaciones(userId);
+        if (!mounted.current) return;
+        if (!accountsWithoutZone(current).some(account => account.id === modal.values.usuarioId)) {
+          setData(current);
+          setUsuarioId('');
+          setModal(null);
+          setNotice('La persona seleccionada ya no está disponible para una nueva asignación. Consulta las asignaciones registradas.');
+          return;
+        }
+        await asignarZona(userId, modal.values);
+      } else {
+        await finalizarAsignacion(userId, modal.row.id);
+      }
       if (!mounted.current) return;
       setNotice(modal.type === 'crear' ? 'Asignación guardada en Supabase. Actualizando el listado.' : 'Asignación finalizada en Supabase. Se conserva en el historial.');
       if (modal.type === 'crear') { setUsuarioId(''); setZonaId(''); setObservaciones(''); setDraftId(crypto.randomUUID()); }
@@ -101,15 +138,51 @@ function Workspace({ userId }) {
     {notice && <p role="status" className="mb-5 rounded-2xl bg-[#e9f2df] p-4 text-sm">{notice}</p>}
     {error && <div role="alert" className="mb-5 rounded-2xl bg-[#fff0e5] p-5 text-sm"><p>{error}</p><p className="mt-2">Actualiza antes de intentar otra operación. La sesión y los permisos se vuelven a comprobar en Supabase.</p></div>}
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.4fr)]">
-      <section className="rounded-3xl border border-solid border-[#dde4d5] bg-white p-6"><h2 className="text-xl font-bold">Nueva asignación</h2><p className="mt-3 text-sm leading-relaxed text-[#66755e]">El permiso abarca las localidades activas de la zona. El trabajador recibe sus solicitudes básicas automáticamente; después, el coordinador asigna cada meliponario para la revisión técnica.</p><form className="mt-5 grid gap-5" onSubmit={confirmCreate}>
-        <div><label htmlFor="assignment-user" className="mb-2 block text-sm font-semibold">Coordinador o trabajador</label><select id="assignment-user" className="review-field" value={usuarioId} disabled={loading || saving || blocked || Boolean(error)} required onChange={event => setUsuarioId(event.target.value)}><option value="">Selecciona una cuenta</option>{data.usuarios.map(row => <option key={row.id} value={row.id}>{name(row)} · {role(row.rol_id)}</option>)}</select></div>
+      <section className="rounded-3xl border border-solid border-[#dde4d5] bg-white p-6">
+        <h2 className="text-xl font-bold">Nueva asignación</h2>
+        <p className="mt-3 text-sm leading-relaxed text-[#66755e]">Elige una persona sin zona vigente. Su cobertura incluirá las localidades activas de la zona que selecciones.</p>
+        <form className="mt-5 grid gap-5" onSubmit={confirmCreate}>
+        <div>
+          <label htmlFor="assignment-user" className="mb-2 block text-sm font-semibold">Coordinador o trabajador disponible</label>
+          <select id="assignment-user" className="review-field" value={target?.id ?? ''} disabled={formDisabled} required onChange={event => setUsuarioId(event.target.value)}>
+            <option value="">Selecciona una persona</option>
+            {available.map(row => <option key={row.id} value={row.id}>{name(row)} · {role(row.rol_id)}</option>)}
+          </select>
+        </div>
         {target && <AccountIdentifier key={target.id} id={target.id} roleId={target.rol_id}/>}
-        <div><label htmlFor="assignment-zone" className="mb-2 block text-sm font-semibold">Zona</label><select id="assignment-zone" className="review-field" value={zonaId} disabled={loading || saving || blocked || Boolean(error)} required onChange={event => setZonaId(event.target.value)}><option value="">Selecciona una zona</option>{data.zonas.map(row => <option key={row.id} value={row.id} disabled={!row.activo || !row.localidades.length}>{row.nombre}{!row.activo ? ' · Inactiva' : !row.localidades.length ? ' · Sin localidades activas' : ''}</option>)}</select></div>
+        <div><label htmlFor="assignment-zone" className="mb-2 block text-sm font-semibold">Zona</label><select id="assignment-zone" className="review-field" value={zonaId} disabled={formDisabled} required onChange={event => setZonaId(event.target.value)}><option value="">Selecciona una zona</option>{data.zonas.map(row => <option key={row.id} value={row.id} disabled={!row.activo || !row.localidades.length}>{row.nombre}{!row.activo ? ' · Inactiva' : !row.localidades.length ? ' · Sin localidades activas' : ''}</option>)}</select></div>
         {zone && <div className="rounded-2xl bg-[#f2f6eb] p-4 text-sm"><p className="font-semibold">Localidades de la zona</p><ul className="mb-0 mt-3 max-h-52 list-disc space-y-2 overflow-auto pl-5">{zone.localidades.map(local => <li key={local.id}>{local.nombre} · {local.municipio}</li>)}</ul></div>}
-        <div><label htmlFor="assignment-notes" className="mb-2 block text-sm font-semibold">Observaciones (opcional)</label><textarea id="assignment-notes" className="review-field" maxLength={2000} value={observaciones} disabled={loading || saving || blocked || Boolean(error)} onChange={event => setObservaciones(event.target.value)}/></div>
-        <button type="submit" className={primary} disabled={loading || saving || blocked || Boolean(error) || !target || !zone?.activo || !zone.localidades.length}>Asignar zona</button>
-      </form>{!loading && !error && !data.usuarios.length && <p className="mt-4 text-sm text-[#806023]">No hay coordinadores o trabajadores activos. Crea sus cuentas desde Usuarios.</p>}{!loading && !error && !data.zonas.length && <p className="mt-4 text-sm text-[#806023]">El catálogo de zonas está vacío. Se necesita registrar su cobertura en el backend.</p>}</section>
-      <section className="min-w-0 rounded-3xl border border-solid border-[#dde4d5] bg-white p-6"><h2 className="text-xl font-bold">Asignaciones registradas</h2><div className="my-5 grid gap-3 sm:grid-cols-2"><div><label htmlFor="assignment-search" className="mb-2 block text-sm font-semibold">Buscar cuenta o zona</label><input type="search" id="assignment-search" className="review-field" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }}/></div><div><label htmlFor="assignment-status" className="mb-2 block text-sm font-semibold">Mostrar</label><select id="assignment-status" className="review-field" value={filter} onChange={event => { setFilter(event.target.value); setPage(1); }}><option value="vigentes">Vigentes</option><option value="finalizadas">No vigentes</option><option value="todas">Todas</option></select></div></div>
+        <div><label htmlFor="assignment-notes" className="mb-2 block text-sm font-semibold">Observaciones (opcional)</label><textarea id="assignment-notes" className="review-field" maxLength={2000} value={observaciones} disabled={formDisabled} onChange={event => setObservaciones(event.target.value)}/></div>
+        <button type="submit" className={primary} disabled={!canAssign}>Asignar zona</button>
+        </form>
+        {!loading && !error && !data.usuarios.length && <p className="mt-4 text-sm text-[#806023]">No hay coordinadores o trabajadores activos. Crea sus cuentas desde Usuarios.</p>}
+        {!loading && !error && data.usuarios.length > 0 && available.length === 0 && <p role="status" className="mt-4 text-sm text-[#806023]">Todas las personas activas del campo tienen una asignación vigente. Consulta sus zonas en Asignaciones registradas.</p>}
+        {!loading && !error && !data.zonas.length && <p className="mt-4 text-sm text-[#806023]">El catálogo de zonas está vacío. Se necesita registrar su cobertura en el backend.</p>}
+      </section>
+      <section className="min-w-0 rounded-3xl border border-solid border-[#dde4d5] bg-white p-6">
+        <h2 className="text-xl font-bold">Asignaciones registradas</h2>
+        <p className="mt-3 text-sm leading-relaxed text-[#66755e]">Consulta la zona de cada persona. Para cambiarla, finaliza la asignación vigente y elige la nueva zona en el formulario.</p>
+        <div className="my-5 grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="assigned-person" className="mb-2 block text-sm font-semibold">Persona con asignaciones</label>
+            <select id="assigned-person" className="review-field" value={selectedAccountFilter} disabled={assignedAccounts.length === 0} onChange={event => { setAccountFilter(event.target.value); setPage(1); }}>
+              <option value="">Todas las personas</option>
+              {assignedAccounts.map(row => <option key={row.usuario_id} value={row.usuario_id}>{name(row)} · {role(row.rol_id)}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="assignment-status" className="mb-2 block text-sm font-semibold">Mostrar</label>
+            <select id="assignment-status" className="review-field" value={filter} onChange={event => { setFilter(event.target.value); setPage(1); }}>
+              <option value="vigentes">Vigentes</option>
+              <option value="finalizadas">No vigentes</option>
+              <option value="todas">Todas</option>
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="assignment-search" className="mb-2 block text-sm font-semibold">Buscar cuenta o zona</label>
+            <input type="search" id="assignment-search" className="review-field" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }}/>
+          </div>
+        </div>
         {loading ? <p role="status">Leyendo asignaciones desde Supabase.</p> : !error && <><p className="mb-4 text-xs text-[#68765e]">{filtered.length} asignaciones</p><div className="grid gap-3">{visible.map(row => <article key={row.id} className="rounded-2xl border border-solid border-[#e0e6d8] p-4"><div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-bold">{name(row)}</h3><p className="mt-1 text-xs text-[#68765e]">{role(row.rol_id)}</p><AccountIdentifier id={row.usuario_id} roleId={row.rol_id}/></div><span className="text-xs font-bold text-[#64773f]">{row.vigente ? 'Vigente' : 'No vigente'}</span></div><p className="mt-3 text-sm font-semibold">{row.zona}{!row.zona_activa && ' · Zona inactiva'}</p><p className="mt-2 text-xs text-[#68765e]">Desde {date(row.fecha_inicio)}</p><p className="mt-1 text-xs text-[#68765e]">{row.fecha_fin ? `Hasta ${date(row.fecha_fin)}` : 'Sin fecha de finalización'}</p>{row.observaciones && <p className="mt-3 whitespace-pre-wrap break-words text-sm text-[#68765e]">{row.observaciones}</p>}{row.vigente && <button type="button" className={`${button} mt-4`} disabled={saving || blocked} onClick={() => setModal({ type: 'finalizar', row })}>Finalizar asignación</button>}</article>)}{!visible.length && <p className="rounded-xl bg-[#f3f5ed] p-5 text-sm">No hay asignaciones para estos filtros.</p>}</div><nav className="mt-5 flex items-center gap-3" aria-label="Páginas de asignaciones"><button type="button" className={button} disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>Anterior</button><span className="text-xs">{currentPage} de {pages}</span><button type="button" className={button} disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>Siguiente</button></nav></>}
       </section>
     </div>
