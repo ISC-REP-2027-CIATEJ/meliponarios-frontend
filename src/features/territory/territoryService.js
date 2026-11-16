@@ -5,6 +5,13 @@ function api() { comprobarConfiguracion(); return service; }
 export const obtenerAsignaciones = userId => api().assignments(userId);
 export const asignarZona = (userId, values) => api().assign(userId, values);
 export const finalizarAsignacion = (userId, id) => api().finish(userId, id);
+export const obtenerCobertura = async userId => api().coverage(userId);
+export const obtenerHistorialCobertura = async (userId, localidadId, pagina) => api().coverageHistory(userId, localidadId, pagina);
+export const cambiarCobertura = async (userId, cambio) => api().changeCoverage(userId, cambio);
+export const obtenerCatalogoMunicipal = async userId => api().coverageMunicipalCatalog(userId);
+export const obtenerCoberturaMunicipal = async (userId, municipioId) => api().coverageByMunicipality(userId, municipioId);
+export const crearZonaCobertura = async (userId, zona) => api().createCoverageZone(userId, zona);
+export const asignarMunicipioZona = async (userId, cambio) => api().assignMunicipality(userId, cambio);
 export const obtenerSolicitudesCampo = (userId, filters) => api().list(userId, filters);
 export const obtenerFichaCampo = (userId, id) => api().detail(userId, id);
 export const tomarSolicitudCampo = (userId, id) => api().take(userId, id);
