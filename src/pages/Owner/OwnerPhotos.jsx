@@ -4,8 +4,8 @@ import { MAX_FOTOS } from '../../features/ownerMeliponarios/fotosSupabase.mjs';
 import { prepararFoto } from '../../features/ownerMeliponarios/prepararFoto.mjs';
 import { eliminarFotoPropia, obtenerFotosPropias, subirFotoPropia } from '../../features/ownerMeliponarios/fotosRemotas';
 
-const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-solid border-[#d3ddcc] bg-white px-4 py-2 text-sm font-semibold text-[#163e2c] hover:bg-[#edf2e7] disabled:cursor-not-allowed disabled:opacity-50';
-const primary = button + ' !border-[#123f2d] !bg-[#123f2d] !text-white';
+const button = 'km-button';
+const primary = 'km-button km-button--primary';
 
 export default function OwnerPhotos({ userId, recordId, bloqueado = false, onActividad }) {
   const [gallery, setGallery] = useState({ items: [], loading: Boolean(recordId), visibilidad: '', aviso: '', error: '' });
@@ -173,14 +173,14 @@ export default function OwnerPhotos({ userId, recordId, bloqueado = false, onAct
     }
   }
 
-  if (!recordId) return <section id="fotografias" className="mb-6 rounded-3xl border border-solid border-[#dde4d5] bg-white p-5 sm:p-8"><h2 className="text-xl font-bold">Fotografías</h2><p className="mt-3 text-sm leading-relaxed text-[#697760]">Guarda primero el borrador real. Después podrás añadir y consultar sus fotografías aquí.</p></section>;
+  if (!recordId) return <section id="fotografias" className="mb-6 km-panel km-inset"><h2 className="text-xl font-bold">Fotografías</h2><p className="mt-3 text-sm leading-relaxed text-muted">Guarda primero el borrador real. Después podrás añadir y consultar sus fotografías aquí.</p></section>;
 
   const busy = Boolean(operation);
   const free = Math.max(0, MAX_FOTOS - gallery.items.length - pending.length);
   const missing = gallery.items.filter(item => item.estadoArchivo === 'sin_archivo').length;
   const ready = pending.filter(item => item.estado === 'preparada');
-  return <section id="fotografias" aria-labelledby="owner-photos-title" aria-busy={busy || gallery.loading} className="mb-6 rounded-3xl border border-solid border-[#dde4d5] bg-white p-5 sm:p-8">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-xs font-bold tracking-[0.15em] text-[#92752f]">FOTOGRAFÍAS DEL PROPIETARIO</p><h2 id="owner-photos-title" className="text-xl font-bold">Galería fotográfica</h2><p className="mt-3 text-sm text-[#697760]">Hasta cinco fotografías JPEG, PNG o WebP de 5 MiB. Recomendamos tres para presentar tu meliponario.</p></div><span className="rounded-full bg-[#edf2e7] px-4 py-2 text-xs font-bold">{gallery.loading ? 'Consultando…' : gallery.items.length + '/5 espacios ocupados'}</span></div>
+  return <section id="fotografias" aria-labelledby="owner-photos-title" aria-busy={busy || gallery.loading} className="mb-6 km-panel km-inset">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="mb-2 text-xs font-bold tracking-[0.15em] text-[#92752f]">FOTOGRAFÍAS DEL PROPIETARIO</p><h2 id="owner-photos-title" className="text-xl font-bold">Galería fotográfica</h2><p className="mt-3 text-sm text-muted">Hasta cinco fotografías JPEG, PNG o WebP de 5 MiB. Recomendamos tres para presentar tu meliponario.</p></div><span className="rounded-full bg-soft px-4 py-2 text-xs font-bold">{gallery.loading ? 'Consultando…' : gallery.items.length + '/5 espacios ocupados'}</span></div>
     <p className="mt-4 rounded-xl bg-[#edf5e7] p-4 text-sm leading-relaxed">Las imágenes permanecen privadas mientras la ficha no sea pública. Si la ficha ya es pública, las nuevas fotos podrán verse sin sesión al terminar la subida.</p>
     {bloqueado && <p className="mt-4 rounded-xl bg-[#fff8e6] p-3 text-sm">Termina de guardar o deshaz los cambios de Datos básicos y Publicación para gestionar fotografías.</p>}
     {gallery.loading && <p role="status" className="mt-4 text-sm">Consultando fotografías y archivos disponibles…</p>}
@@ -190,25 +190,25 @@ export default function OwnerPhotos({ userId, recordId, bloqueado = false, onAct
     {missing > 0 && <p className="mt-4 text-sm text-[#765d23]">{missing} {missing === 1 ? 'espacio tiene una reserva sin archivo' : 'espacios tienen reservas sin archivo'}. Puedes eliminar esas reservas para liberar espacio.</p>}
     <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {gallery.items.map(item => <article key={item.id} className="overflow-hidden rounded-2xl border border-solid border-[#dce4d3]">
-        {item.url && !failedUrls.includes(item.url) ? <button type="button" className="block w-full border-0 bg-[#edf2e7] p-0" aria-label={'Ampliar fotografía ' + item.posicion} onClick={() => { setViewing(item); viewer.current?.showModal(); }}><img src={item.url} alt={item.descripcion || 'Fotografía del meliponario'} className="aspect-[4/3] w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedUrls(prev => [...prev, item.url])}/></button> : <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-[#edf2e7] p-4 text-center text-sm text-[#697760]"><Icon name="bee" size={32}/>{item.estadoArchivo === 'sin_archivo' ? 'Reserva sin archivo subido' : 'Vista previa no disponible. Actualiza la galería.'}</div>}
-        <div className="p-4"><p className="text-xs font-bold text-[#697760]">Fotografía {item.posicion}</p>{item.descripcion && <p className="mt-2 break-words text-sm leading-relaxed">{item.descripcion}</p>}<button type="button" className={button + ' mt-3 text-[#97472d]'} disabled={busy || bloqueado || needsCheck || gallery.loading} onClick={() => { setDeleting(item); confirm.current?.showModal(); }}>{item.estadoArchivo === 'sin_archivo' ? 'Eliminar reserva' : 'Eliminar fotografía'}</button></div>
+        {item.url && !failedUrls.includes(item.url) ? <button type="button" className="block w-full border-0 bg-soft p-0" aria-label={'Ampliar fotografía ' + item.posicion} onClick={() => { setViewing(item); viewer.current?.showModal(); }}><img src={item.url} alt={item.descripcion || 'Fotografía del meliponario'} className="aspect-[4/3] w-full object-cover" loading="lazy" referrerPolicy="no-referrer" onError={() => setFailedUrls(prev => [...prev, item.url])}/></button> : <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-soft p-4 text-center text-sm text-muted"><Icon name="bee" size={32}/>{item.estadoArchivo === 'sin_archivo' ? 'Reserva sin archivo subido' : 'Vista previa no disponible. Actualiza la galería.'}</div>}
+        <div className="p-4"><p className="text-xs font-bold text-muted">Fotografía {item.posicion}</p>{item.descripcion && <p className="mt-2 break-words text-sm leading-relaxed">{item.descripcion}</p>}<button type="button" className={button + ' mt-3 text-[#97472d]'} disabled={busy || bloqueado || needsCheck || gallery.loading} onClick={() => { setDeleting(item); confirm.current?.showModal(); }}>{item.estadoArchivo === 'sin_archivo' ? 'Eliminar reserva' : 'Eliminar fotografía'}</button></div>
       </article>)}
     </div>
-    {!gallery.loading && !gallery.error && !gallery.items.length && <p className="mt-5 rounded-2xl border border-dashed border-[#ccd7c6] p-6 text-center text-sm text-[#697760]">Todavía no hay fotografías guardadas en este registro.</p>}
+    {!gallery.loading && !gallery.error && !gallery.items.length && <p className="mt-5 rounded-2xl border border-dashed border-[#ccd7c6] p-6 text-center text-sm text-muted">Todavía no hay fotografías guardadas en este registro.</p>}
 
     <div className="mt-5 flex flex-wrap gap-3">
       <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp" className="sr-only" tabIndex={-1} aria-label="Seleccionar fotografías del meliponario" disabled={busy || bloqueado || gallery.loading || Boolean(gallery.error) || needsCheck || free < 1} onChange={selectFiles}/>
       <button type="button" className={button} disabled={busy || bloqueado || gallery.loading || Boolean(gallery.error) || needsCheck || free < 1} onClick={() => input.current?.click()}>+ Seleccionar fotografías</button>
       <button type="button" className={button} disabled={busy || gallery.loading} onClick={refresh}>Actualizar y comprobar</button>
     </div>
-    <p className="mt-3 text-xs leading-relaxed text-[#697760]">Se prepara una copia de hasta 2400 píxeles de lado, normalmente WebP, sin trasladar los metadatos EXIF. Tus archivos originales no se modifican.</p>
+    <p className="mt-3 text-xs leading-relaxed text-muted">Se prepara una copia de hasta 2400 píxeles de lado, normalmente WebP, sin trasladar los metadatos EXIF. Tus archivos originales no se modifican.</p>
 
     {pending.length > 0 && <div className="mt-6 rounded-2xl bg-[#f5f7f0] p-4 sm:p-5">
-      <h3 className="text-base font-bold">Seleccionadas en este navegador</h3><p className="mt-2 text-sm text-[#697760]">Estas vistas previas todavía no significan que las fotos estén guardadas. Revisa y pulsa Subir fotografías.</p>
+      <h3 className="text-base font-bold">Seleccionadas en este navegador</h3><p className="mt-2 text-sm text-muted">Estas vistas previas todavía no significan que las fotos estén guardadas. Revisa y pulsa Subir fotografías.</p>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         {pending.map(item => <article key={item.key} className="overflow-hidden rounded-2xl border border-solid border-[#dce4d3] bg-white">
           <img src={item.preview} alt="Vista previa local de la fotografía seleccionada" className="aspect-[4/3] w-full object-cover"/>
-          <div className="p-4"><p className="break-all text-xs font-bold text-[#697760]">{item.nombreLocal}</p><p className="mt-2 text-xs">{item.estado === 'subiendo' ? 'Subiendo…' : item.estado === 'por_comprobar' ? 'Resultado pendiente de comprobar' : 'Preparada para subir'}</p><label className="mt-3" htmlFor={'foto-descripcion-' + item.key}>Descripción pública opcional</label><textarea id={'foto-descripcion-' + item.key} className="owner-field" maxLength={500} value={item.descripcion} disabled={busy || needsCheck} onChange={event => description(item.key, event.target.value)}/><p className="mt-2 text-xs text-[#697760]">{Array.from(item.descripcion).length}/250 caracteres</p><button type="button" className={button + ' mt-3'} disabled={busy || needsCheck} onClick={() => discard(item.key)}>Quitar de la selección</button></div>
+          <div className="p-4"><p className="break-all text-xs font-bold text-muted">{item.nombreLocal}</p><p className="mt-2 text-xs">{item.estado === 'subiendo' ? 'Subiendo…' : item.estado === 'por_comprobar' ? 'Resultado pendiente de comprobar' : 'Preparada para subir'}</p><label className="mt-3" htmlFor={'foto-descripcion-' + item.key}>Descripción pública opcional</label><textarea id={'foto-descripcion-' + item.key} className="owner-field" maxLength={500} value={item.descripcion} disabled={busy || needsCheck} onChange={event => description(item.key, event.target.value)}/><p className="mt-2 text-xs text-muted">{Array.from(item.descripcion).length}/250 caracteres</p><button type="button" className={button + ' mt-3'} disabled={busy || needsCheck} onClick={() => discard(item.key)}>Quitar de la selección</button></div>
         </article>)}
       </div>
       <div className="mt-4 flex flex-wrap gap-3"><button type="button" className={primary} disabled={busy || bloqueado || needsCheck || gallery.loading || Boolean(gallery.error) || !ready.length || ready.length + gallery.items.length > MAX_FOTOS} onClick={upload}>{operation === 'subir' ? 'Subiendo…' : 'Subir fotografías'}</button><button type="button" className={button} disabled={busy || needsCheck} onClick={() => discard()}>Descartar selección</button></div>

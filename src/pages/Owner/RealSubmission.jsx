@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { enviarSolicitudReal, obtenerRevisionesCliente } from '../../features/territory/territoryService';
 
-const button = 'inline-flex min-h-11 items-center justify-center rounded-xl border border-solid border-[#cbd9bc] bg-white px-5 py-2 text-sm font-semibold text-[#163e2c] hover:bg-[#edf4e6] disabled:opacity-50';
+const button = 'km-button';
 export default function RealSubmission({ userId, record, dirty, onSubmitted }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);

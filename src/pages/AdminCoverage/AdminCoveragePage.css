@@ -102,16 +102,16 @@
   border: 1px solid var(--za-line);
   border-radius: 11px;
   color: var(--za-ink);
-  background: #fffefa;
+  background: var(--km-surface);
   text-align: left;
   overflow-wrap: anywhere;
 }
 
-.ct-locality:hover { border-color: #9ab69c; background: #f4f8ef; }
+.ct-locality:hover { border-color: #9ab69c; background: #f4f8f4; }
 .ct-locality[aria-pressed="true"] {
   border-color: #77a181;
-  background: #e9f2e6;
-  box-shadow: inset 4px 0 #417552;
+  background: var(--za-sage);
+  box-shadow: inset 4px 0 var(--za-green);
 }
 
 .ct-place-meta, .ct-hint {
@@ -147,7 +147,7 @@
   padding: 10px 12px;
   border: 1px solid var(--za-line);
   border-radius: 10px;
-  background: #fffefa;
+  background: var(--km-surface);
   font-size: 0.875rem;
 }
 

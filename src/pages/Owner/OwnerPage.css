@@ -2,10 +2,9 @@
   .owner-page :where(h1,h2,h3,p) { margin: 0; }
   .owner-page :where(button,input,select,textarea) { font: inherit; }
 }
-.owner-page { color: #163e2c; font-family: Arial, sans-serif; }
-.owner-page :where(button,a,input,select,textarea):focus-visible { outline: 3px solid #b78a2b; outline-offset: 3px; }
+.owner-page :where(button,a,input,select,textarea):focus-visible { outline: 3px solid var(--km-focus); outline-offset: 3px; }
 .owner-page button:disabled { cursor: default; }
-.owner-page .owner-field { display: block; width: 100%; min-height: 50px; border: 1px solid #ccd7c6; border-radius: 12px; background: white; padding: 12px 14px; color: #163e2c; font-size: 16px; box-shadow: none; }
+.owner-page .owner-field { display: block; width: 100%; min-width: 0; min-height: 50px; border: 1px solid var(--km-line); border-radius: var(--km-radius-small); background: #fcfdfa; padding: 12px 14px; color: var(--km-ink); font-size: 16px; box-shadow: none; }
 .owner-page textarea.owner-field { min-height: 110px; resize: vertical; }
 .owner-page .owner-field:disabled { background: #f2f4ee; color: #596c57; opacity: 1; cursor: default; }
 .owner-page .owner-field[aria-invalid=true] { border-color: #ab4c31; background: #fffbf9; }
@@ -14,14 +13,13 @@
 .owner-page label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 600; }
 .owner-page input[type=checkbox] { width: 22px; height: 22px; padding: 0; accent-color: #164c35; box-shadow: none; }
 .owner-page input[type=radio] { width: 19px; height: 19px; padding: 0; accent-color: #164c35; box-shadow: none; flex-shrink: 0; }
-.owner-page dialog { width: min(92vw, 570px); max-height: 90svh; overflow: auto; border: 1px solid #d7dfd0; border-radius: 24px; padding: 28px; color: #163e2c; background: #fff; }
-.owner-page dialog::backdrop { background: #082f21aa; backdrop-filter: blur(4px); }
+.owner-page dialog { width: min(92vw, 570px); max-height: 90svh; overflow: auto; border: 1px solid var(--km-line); border-radius: var(--km-radius); padding: 28px; color: var(--km-ink); background: var(--km-surface); }
+.owner-page dialog::backdrop { background: #03271ed0; backdrop-filter: blur(3px); }
 .owner-page .owner-map { position: relative; isolation: isolate; }
 .owner-page .owner-map__canvas { height: 360px; overflow: hidden; border: 1px solid #d8e0d1; border-radius: 18px; background: #e8eee3; z-index: 0; }
 .owner-page .owner-map__notice { position: absolute; bottom: 28px; left: 12px; right: 12px; z-index: 800; padding: 12px; border-radius: 12px; background: #fffffff5; color: #71541b; font-size: 14px; box-shadow: 0 2px 12px #173c2c18; }
 .owner-page .owner-map__retry { margin-left: 10px; min-height: 36px; border: 0; padding: 5px; background: transparent; color: #164c35; font-weight: 700; text-decoration: underline; }
 .owner-page .leaflet-control-zoom a { width: 40px; height: 40px; line-height: 40px; }
-.owner-page .leaflet-container { font-family: Arial,sans-serif; }
-.owner-page .owner-cover { background-color: #edf2e7; background-image: radial-gradient(ellipse at 85% 15%, #d8e3c9 0, #d8e3c9 16%, transparent 17%), radial-gradient(ellipse at 8% 95%, #dfe8d4 0, #dfe8d4 22%, transparent 23%); }
+.owner-page .owner-cover { background-color: var(--km-soft); color: var(--km-brand); }
 .owner-page section[id] { scroll-margin-top: 24px; }
 @media(max-width: 640px) { .owner-page .owner-map__canvas { height: 320px; } .owner-page dialog { padding: 22px; } }

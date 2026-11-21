@@ -58,7 +58,7 @@ function IdentificadorCuenta({ id }) {
 }
 
 export default function AdminAssignmentsPage({ user, sessionReady, onLogout }) {
-  return <div className="za-page">
+  return <div className="za-page km-with-nav">
     <OwnerHeader user={user} sessionReady={sessionReady} onLogout={onLogout}/>
     {!sessionReady ? (
       <main className="za-wrap"><p role="status">Comprobando sesión…</p></main>
@@ -217,7 +217,7 @@ function Workspace({ userId }) {
           <h1 id="za-title">Asignaciones de zonas</h1>
           <p>Consulta y asigna la cobertura de coordinadores y trabajadores de campo.</p>
         </div>
-        <button className="za-button za-button--gold" type="button"
+        <button className="za-button za-button--hero" type="button"
           disabled={cargando || guardando} onClick={() => { setAviso(''); recargar(); }}>
           {cargando ? 'Actualizando…' : 'Actualizar asignaciones'}
         </button>
@@ -240,7 +240,7 @@ function Workspace({ userId }) {
 
     <div className="za-layout">
       <section className="za-panel" aria-labelledby="za-nueva">
-        <header className="za-panel-heading za-panel-heading--honey">
+        <header className="za-panel-heading">
           <span className="za-panel-icon"><Icon name="pin" size={22}/></span>
           <h2 id="za-nueva">Nueva asignación</h2>
         </header>
@@ -361,7 +361,7 @@ function Workspace({ userId }) {
       <div className="za-dialog-actions">
         <button className="za-button za-button--soft" type="button" disabled={guardando}
           onClick={() => setAccion(null)}>Cancelar</button>
-        <button className={accion?.tipo === 'finalizar' ? 'za-button za-button--gold' : 'za-button za-button--primary'}
+        <button className={accion?.tipo === 'finalizar' ? 'za-button za-button--hero' : 'za-button za-button--primary'}
           type="button" disabled={guardando} onClick={guardar}>
           {guardando ? 'Guardando…' : accion?.tipo === 'finalizar' ? 'Confirmar finalización' : 'Confirmar asignación'}
         </button>

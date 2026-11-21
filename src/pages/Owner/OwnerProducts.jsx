@@ -2,7 +2,7 @@ import { useImperativeHandle, useRef, useState } from 'react';
 import Icon from '../Explore/Icon';
 import { categoriasProducto, crearProducto, imagenesProducto, normalizarProducto, presentacionProducto, tiposProducto, unidadesProducto, validarProducto } from '../../features/ownerMeliponarios/productos';
 
-const button = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-solid border-[#d2ddc9] bg-white px-4 py-2 text-sm font-semibold text-[#244c35] hover:bg-[#edf3e6]';
+const button = 'km-button';
 
 export function ProductImage({ imageId, name = '', small = false }) {
   const file = imagenesProducto[imageId];

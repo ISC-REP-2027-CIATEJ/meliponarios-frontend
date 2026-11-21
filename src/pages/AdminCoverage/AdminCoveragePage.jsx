@@ -23,7 +23,7 @@ const fechaHistorial = new Intl.DateTimeFormat('es-MX', {
 const nombreZona = zona => zona?.nombre ?? 'Sin zona';
 
 export default function AdminCoveragePage({ user, sessionReady, onLogout }) {
-  return <div className="za-page ct-page">
+  return <div className="za-page km-with-nav ct-page">
     <OwnerHeader user={user} sessionReady={sessionReady} onLogout={onLogout}/>
     {!sessionReady ? <main className="za-wrap"><p role="status">Comprobando sesión…</p></main>
       : isAdminUser(user) ? <Cobertura key={user.id} userId={user.id}/>
@@ -227,7 +227,7 @@ function Cobertura({ userId }) {
             onClick={() => { setAviso(null); recargar(); }}>
             {cargando ? 'Actualizando…' : 'Actualizar cobertura'}
           </button>
-          <button className="za-button za-button--gold" type="button" disabled={!habilitado || cargando || guardando}
+          <button className="za-button za-button--hero" type="button" disabled={!habilitado || cargando || guardando}
             onClick={() => { setErrorZona(''); setCreandoZona(true); }}>
             <span aria-hidden="true">+</span> Crear zona
           </button>
@@ -290,7 +290,7 @@ function Cobertura({ userId }) {
         </div>
       </section>
       <section id="ct-panel-detalle" className="za-panel" aria-labelledby="ct-detalle">
-        <header className="za-panel-heading za-panel-heading--honey">
+        <header className="za-panel-heading">
           <span className="za-panel-icon"><Icon name="pin" size={22}/></span>
           <h2 id="ct-detalle" tabIndex={-1} ref={tituloDetalle}>Gestionar localidad</h2>
         </header>
@@ -488,7 +488,7 @@ function ConfirmarCambio({ cambio, guardando, cancelar, guardar }) {
     <p className="ct-hint">El cambio se reflejará en la cobertura de las personas asignadas a esas zonas.</p>
     <div className="za-dialog-actions">
       <button className="za-button za-button--soft" type="button" disabled={guardando} onClick={cancelar}>Cancelar</button>
-      <button className={cambio.valores.accion === 'retirar' ? 'za-button za-button--gold' : 'za-button za-button--primary'}
+      <button className={cambio.valores.accion === 'retirar' ? 'za-button za-button--hero' : 'za-button za-button--primary'}
         type="button" disabled={guardando} onClick={guardar}>
         {guardando ? 'Guardando…' : 'Confirmar cambio'}
       </button>

@@ -1,63 +1,116 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { isAdminUser } from '../features/adminUsers/adminUsersModel.mjs';
+import { isCliente } from '../features/ownerMeliponarios/model';
 import { ADMIN_COVERAGE_ROUTE } from '../features/territory/territoryCoverageModel.mjs';
 import Icon from '../pages/Explore/Icon';
-import { isCliente } from '../features/ownerMeliponarios/model';
 
-const navButton = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-solid border-[#d8ded3] bg-white px-5 py-2 text-sm font-semibold text-[#163e2c] no-underline transition-colors hover:bg-[#edf1e7]';
+export function KaabMapBrand({ link = true }) {
+  const mark = <><span className="km-brand-mark"><Icon name="bee" size={23}/></span><span>KaabMap</span></>;
+  return link ? <a href="#explorar" className="km-brand" aria-label="KaabMap, inicio">{mark}</a> : <span className="km-brand">{mark}</span>;
+}
 
-export function ClientAccountLinks({ user }) {
-  if (isAdminUser(user)) {
-    const adminLink = navButton + ' mb-2 w-full';
-    return <>
-      <a href="#administracion/usuarios" className={adminLink}>Administrar usuarios</a>
-      <a href="#administracion/asignaciones" className={adminLink}>Asignaciones</a>
-      <a href={'#' + ADMIN_COVERAGE_ROUTE} className={adminLink}>Cobertura territorial</a>
-    </>;
-  }
-  if ([3,4].includes(Number(user?.roleId))) return <><a href="#campo/solicitudes" className={`${navButton} mb-2 w-full`}>Solicitudes básicas</a><a href="#campo/asignaciones-tecnicas" className={`${navButton} mb-2 w-full`}>{Number(user.roleId) === 3 ? 'Asignar meliponarios' : 'Meliponarios asignados'}</a></>;
+function ClientAccountLinks({ user }) {
+  if (isAdminUser(user)) return <div className="km-account-links">
+    <a href="#administracion/usuarios" className="km-button km-button--soft"><Icon name="user" size={18}/>Administrar usuarios</a>
+    <a href="#administracion/asignaciones" className="km-button km-button--soft"><Icon name="records" size={18}/>Asignaciones</a>
+    <a href={'#' + ADMIN_COVERAGE_ROUTE} className="km-button km-button--soft"><Icon name="map" size={18}/>Cobertura territorial</a>
+  </div>;
+  if ([3, 4].includes(Number(user?.roleId))) return <div className="km-account-links">
+    <a href="#campo/solicitudes" className="km-button km-button--soft"><Icon name="records" size={18}/>Solicitudes básicas</a>
+    <a href="#campo/asignaciones-tecnicas" className="km-button km-button--soft"><Icon name="pin" size={18}/>{Number(user.roleId) === 3 ? 'Asignar meliponarios' : 'Meliponarios asignados'}</a>
+  </div>;
   if (!isCliente(user)) return null;
-  return <a href="#mis-meliponarios" className="mb-2 flex min-h-11 items-center gap-2 rounded-xl bg-[#edf2e7] px-3 py-2 text-sm font-semibold text-[#163e2c] no-underline hover:bg-[#e1e9d7]"><Icon name="bee" size={18}/>Mis meliponarios<Icon name="arrow" size={16}/></a>;
+  return <a href="#mis-meliponarios" className="km-button km-button--soft"><Icon name="records" size={18}/>Mis meliponarios</a>;
 }
 
 export function ClientRegistrationButton({ user, sessionReady = true }) {
   if (!sessionReady || !isCliente(user)) return null;
-  return <a href="#nuevo-meliponario" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-solid border-[#123f2d] bg-[#123f2d] px-5 py-2 text-sm font-semibold text-white no-underline hover:bg-[#23583e]"><span aria-hidden="true" className="text-xl leading-none">+</span>Registrar meliponario</a>;
+  return <a href="#nuevo-meliponario" className="km-button km-button--primary"><span aria-hidden="true">+</span>Registrar meliponario</a>;
 }
 
-export function OwnerHeader({ user, sessionReady, onLogout }) {
+function NavLink({ to, icon, active, onNavigate, children }) {
+  return <a href={'#' + to} className="km-nav-item" aria-current={active ? 'page' : undefined}
+    onClick={onNavigate ? event => {
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      onNavigate();
+    } : undefined}>
+    <Icon name={icon} size={21}/>{children}
+  </a>;
+}
+
+export function OwnerHeader({ user, sessionReady = true, onLogout, onLogin, onExplore, onMap, current, verde = false }) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const [error, setError] = useState('');
+  const account = useRef(null);
+  const toggle = useRef(null);
+  const id = useId();
   const name = user?.name?.trim() || 'Mi cuenta';
+
+  useEffect(() => {
+    if (!open) return;
+    function outside(event) {
+      if (!account.current?.contains(event.target)) setOpen(false);
+    }
+    function escape(event) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      toggle.current?.focus();
+    }
+    document.addEventListener('pointerdown', outside);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', outside);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
+
   async function closeSession() {
     if (closing || !onLogout) return;
-    setClosing(true); setError('');
-    try { await onLogout(); setOpen(false); return true; }
-    catch (err) { setError(err.message || 'No se pudo cerrar la sesión.'); return false; }
-    finally { setClosing(false); }
+    setClosing(true);
+    setError('');
+    try {
+      await onLogout();
+      setOpen(false);
+      return true;
+    } catch (err) {
+      setError(err.message || 'No se pudo cerrar la sesión.');
+      return false;
+    } finally {
+      setClosing(false);
+    }
   }
+
   function requestLogout() {
     const event = new CustomEvent('kaabmap:before-owner-leave', { cancelable: true, detail: { continuar: closeSession } });
     if (window.dispatchEvent(event)) void closeSession();
   }
-  return <header className="border-0 border-b border-solid border-[#dfe5d8] bg-white">
-    <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-5 lg:px-10">
-      <a href="#explorar" className="flex items-center gap-3 text-[#163e2c] no-underline"><span className="text-[#ad7f25]"><Icon name="bee" size={36}/></span><span><span className="block text-2xl font-extrabold tracking-tight">KaabMap</span><span className="mt-1 block text-[10px] tracking-[0.2em]">MELIPONARIOS DE YUCATÁN</span></span></a>
-      <nav aria-label="Navegación principal" className="flex flex-wrap items-center gap-2">
-        <a href="#explorar" className={navButton}>Explorar</a><a href="#mapa" className={navButton}><Icon name="map"/>Mapa</a>
-        {!sessionReady ? <span role="status" className="px-3 text-sm text-[#637063]">Comprobando sesión…</span> : !user ? <a href="#login" className={navButton}>Iniciar sesión<Icon name="arrow" size={17}/></a> : <div className="relative">
-          <button type="button" className={navButton} aria-expanded={open} aria-controls="owner-account" onClick={() => setOpen(value => !value)}>
-            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[#e8edde]">{(user.name?.trim() || user.email || 'U').charAt(0).toUpperCase()}</span>
-            <span className="flex min-w-0 flex-col items-start text-left leading-tight"><span className="max-w-[150px] truncate">{name}</span><span className="flex items-center gap-1 text-[10px] font-medium text-[#80682a]"><Icon name="bee" size={12}/>{user.roleName || 'Rol no disponible'}</span></span>
-            <span className={`grid size-7 place-items-center rounded-full bg-[#edf1e7] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>
-          </button>
-          {open && <div id="owner-account" className="absolute right-0 top-full z-[1300] mt-2 min-w-64 rounded-2xl border border-solid border-[#dce1d4] bg-white p-4 text-left shadow-lg">
-            <p className="text-sm font-bold">{name}</p><p className="mt-1 text-xs text-[#80682a]">{user.roleName}</p>{user.email && <p className="mb-4 mt-3 break-all text-xs text-[#637063]">{user.email}</p>}
-            <ClientAccountLinks user={user}/>{error && <p role="alert" className="my-2 text-sm text-[#963f28]">{error}</p>}
-            <button type="button" className="min-h-11 w-full rounded-xl border border-solid border-[#d8ded3] bg-white px-3 py-2 text-left text-sm text-[#163e2c] hover:bg-[#edf1e7]" disabled={closing || !onLogout} onClick={requestLogout}>{closing ? 'Cerrando sesión…' : 'Cerrar sesión'}</button>
+
+  return <header className={verde ? 'km-header km-header--verde' : 'km-header'}>
+    <div className="km-container km-header-inner">
+      <KaabMapBrand/>
+      <nav aria-label="Navegación principal" className="km-nav">
+        <NavLink to="explorar" icon="home" active={current === 'explorar'} onNavigate={onExplore}>Inicio</NavLink>
+        <NavLink to="mapa" icon="map" active={current === 'mapa'} onNavigate={onMap}>Mapa</NavLink>
+        {sessionReady && isCliente(user) && <NavLink to="mis-meliponarios" icon="records" active={current === 'registros'}>Mis registros</NavLink>}
+        {!sessionReady ? <span role="status" className="sr-only">Comprobando sesión…</span>
+          : !user ? <NavLink to="login" icon="user" onNavigate={onLogin}>Iniciar sesión</NavLink>
+          : <div ref={account} className="km-account">
+            <button type="button" ref={toggle} className="km-nav-item" aria-label="Opciones de cuenta" aria-expanded={open} aria-controls={open ? id : undefined} onClick={() => { setOpen(value => !value); setError(''); }}>
+              <span className="km-account-avatar">{(user.name?.trim() || user.email || 'U').charAt(0).toUpperCase()}</span>
+              <span className="km-account-label">{name}</span>
+              <span className="km-account-chevron"><Icon name="chevron" size={14}/></span>
+              <span className="km-account-mobile"><Icon name="user" size={21}/></span>
+              <span className="km-account-mobile">Cuenta</span>
+            </button>
+            {open && <div id={id} className="km-account-popover">
+              <div className="km-account-data"><strong>{name}</strong><p>{user.roleName || 'Rol no disponible'}</p>{user.email && <p>{user.email}</p>}</div>
+              <ClientAccountLinks user={user}/>
+              {error && <p className="km-status" role="alert">{error}</p>}
+              <button type="button" className="km-button" disabled={closing || !onLogout} onClick={requestLogout}>{closing ? 'Cerrando sesión…' : 'Cerrar sesión'}</button>
+            </div>}
           </div>}
-        </div>}
       </nav>
     </div>
   </header>;
