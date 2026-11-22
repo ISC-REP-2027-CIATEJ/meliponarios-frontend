@@ -6,13 +6,15 @@ import {
   filtrarLocalidades, unirCobertura, zonasDestino,
 } from '../../features/territory/territoryCoverageModel.mjs';
 import {
-  asignarMunicipioZona, cambiarCobertura, crearZonaCobertura,
+  actualizarZonaCobertura, asignarMunicipioZona, cambiarCobertura, crearZonaCobertura, retirarMunicipioZona,
   obtenerCatalogoMunicipal, obtenerCoberturaMunicipal, obtenerHistorialCobertura,
 } from '../../features/territory/territoryService';
 import Icon from '../Explore/Icon';
 import { ConfirmarMunicipio, CrearZonaDialog, DialogoCobertura, FormularioMunicipio } from './AdminCoverageMunicipal';
 import '../AdminAssignments/AdminAssignmentsPage.css';
 import './AdminCoveragePage.css';
+import '../WorkTeams/WorkTeamsPage.css';
+import { DirectorioZonas, EditarZonaDialog, RetiroMunicipal } from './ZoneManagement';
 
 const filtrosIniciales = { busqueda: '', zonaId: '' };
 const tipoCambio = { asignacion: 'Asignación', reasignacion: 'Traslado', retiro: 'Retiro' };
@@ -54,6 +56,7 @@ function Cobertura({ userId }) {
   const [cambio, setCambio] = useState(null);
   const [creandoZona, setCreandoZona] = useState(false);
   const [errorZona, setErrorZona] = useState('');
+  const [edicionZona, setEdicionZona] = useState(null);
   const [zonaInicial, setZonaInicial] = useState('');
   const [guardando, setGuardando] = useState(false);
   const montado = useRef(false);
@@ -114,10 +117,9 @@ function Cobertura({ userId }) {
   const inicio = (paginaActual - 1) * LOCALIDADES_POR_PAGINA;
   const visibles = filtradas.slice(inicio, inicio + LOCALIDADES_POR_PAGINA);
   const localidad = localidades.find(row => row.id === localidadId);
-  const habilitado = catalogo?.gestionMunicipal === true;
+  const habilitado = Boolean(catalogo) && !cargando;
   const zonasActivas = catalogo?.zonas.filter(zona => zona.activo).length ?? 0;
-  const totalLocalidades = habilitado
-    ? catalogo.municipios.reduce((total, row) => total + row.localidades, 0) : '—';
+  const zonasArchivadas = catalogo ? catalogo.zonas.length - zonasActivas : 0;
 
   function seleccionarMunicipio(id) {
     setMunicipioId(id);
@@ -142,6 +144,7 @@ function Cobertura({ userId }) {
     if (!bloqueado.current) {
       setCambio(null);
       setCreandoZona(false);
+      setEdicionZona(null);
     }
   }
 
@@ -152,23 +155,28 @@ function Cobertura({ userId }) {
   }
 
   async function guardarZona(valores) {
-    if (bloqueado.current || !creandoZona || !habilitado || cargando) return;
+    if (bloqueado.current || (!creandoZona && !edicionZona) || !habilitado || cargando) return;
     bloqueado.current = true;
     setGuardando(true);
     setErrorZona('');
     setAviso(null);
     try {
-      const id = await crearZonaCobertura(userId, valores);
+      if (edicionZona) await actualizarZonaCobertura(userId, edicionZona.original, valores);
+      else {
+        const id = await crearZonaCobertura(userId, valores);
+        if (montado.current) setZonaInicial(id);
+      }
       if (!montado.current) return;
-      setZonaInicial(id);
       setCreandoZona(false);
-      setAviso({ texto: 'Zona creada. Ya puedes elegirla como destino de cobertura.' });
+      setEdicionZona(null);
+      setAviso({ texto: edicionZona ? 'Cambio de zona guardado.' : 'Zona creada. Ya puedes elegirla como destino de cobertura.' });
       recargar();
     } catch (error) {
       if (!montado.current) return;
       const texto = error.message || 'No se pudo confirmar la creación de la zona.';
       if (requiereActualizar(error) && error.code !== '23505') {
         setCreandoZona(false);
+        setEdicionZona(null);
         setAviso({ texto, error: true });
         recargar();
       } else {
@@ -188,9 +196,11 @@ function Cobertura({ userId }) {
     try {
       let texto = 'Cambio registrado. Consulta la zona y el historial de la localidad.';
       if (cambio.alcance === 'municipio') {
-        const resultado = await asignarMunicipioZona(userId, { ...cambio.valores, trasladar });
-        texto = cambio.municipio + ' quedó en ' + cambio.hacia.nombre + '. '
-          + resultado.asignadas + ' incorporadas y ' + resultado.trasladadas + ' trasladadas.';
+        await asignarMunicipioZona(userId, { ...cambio.valores, trasladar });
+        texto = 'Asignación municipal procesada. Consulta la cobertura actualizada de ' + cambio.municipio + '.';
+      } else if (cambio.alcance === 'retiroMunicipal') {
+        const total = await retirarMunicipioZona(userId, cambio.valores);
+        texto = 'Localidades retiradas de ' + cambio.desde.nombre + ' en ' + cambio.municipio + ' · ' + total;
       } else {
         await cambiarCobertura(userId, cambio.valores);
       }
@@ -215,7 +225,8 @@ function Cobertura({ userId }) {
       <nav className="za-nav" aria-label="Administración">
         <a href="#administracion/usuarios">Usuarios</a>
         <a href="#administracion/asignaciones">Asignaciones</a>
-        <a href={'#' + ADMIN_COVERAGE_ROUTE} aria-current="page">Cobertura territorial</a>
+        <a href={'#' + ADMIN_COVERAGE_ROUTE} aria-current="page">Zonas y cobertura</a>
+        <a href="#territorio/equipos">Equipos de trabajo</a>
       </nav>
       <div className="za-hero-body">
         <div>
@@ -227,7 +238,7 @@ function Cobertura({ userId }) {
             onClick={() => { setAviso(null); recargar(); }}>
             {cargando ? 'Actualizando…' : 'Actualizar cobertura'}
           </button>
-          <button className="za-button za-button--hero" type="button" disabled={!habilitado || cargando || guardando}
+          <button className="za-button eq-prominent" type="button" disabled={!habilitado || cargando || guardando}
             onClick={() => { setErrorZona(''); setCreandoZona(true); }}>
             <span aria-hidden="true">+</span> Crear zona
           </button>
@@ -236,17 +247,15 @@ function Cobertura({ userId }) {
       <dl className="za-totals" aria-label="Resumen de cobertura">
         <div><dt>Municipios</dt><dd>{cargando || !catalogo ? '—' : catalogo.municipios.length}</dd></div>
         <div><dt>Zonas activas</dt><dd>{cargando || !catalogo ? '—' : zonasActivas}</dd></div>
-        <div><dt>Localidades registradas</dt><dd>{cargando ? '—' : totalLocalidades}</dd></div>
+        <div><dt>Zonas archivadas</dt><dd>{cargando || !catalogo ? '—' : zonasArchivadas}</dd></div>
       </dl>
     </section>
 
     {aviso && <p className={aviso.error ? 'za-notice za-notice--error' : 'za-notice'}
       role={aviso.error ? 'alert' : 'status'}>{aviso.texto}</p>}
     {errorCarga && <p className="za-notice za-notice--error" role="alert">{errorCarga}</p>}
-    {!cargando && catalogo && !habilitado && <p className="za-notice" role="status">
-      La creación de zonas y la asignación de municipios están pendientes de habilitar en Supabase.
-      Puedes consultar la cobertura y seguir asignando por localidad.
-    </p>}
+    {habilitado && <DirectorioZonas zonas={catalogo.zonas} guardando={guardando}
+      editar={(original, operacion) => { setAviso(null); setErrorZona(''); setEdicionZona({ original, operacion }); }}/>}
 
     <section className="za-panel ct-controls" aria-label="Municipio y modo de cobertura">
       <div className="za-field">
@@ -275,8 +284,10 @@ function Cobertura({ userId }) {
     </p> : consultaActual.error ? <p className="za-notice za-notice--error" role="alert">
       {consultaActual.error} Usa Actualizar cobertura para volver a consultar.
     </p> : modo === 'municipio' ? (
-      <FormularioMunicipio key={claveConsulta} municipio={municipio} localidades={localidades}
+      <><FormularioMunicipio key={claveConsulta} municipio={municipio} localidades={localidades}
         zonas={catalogo.zonas} zonaInicial={zonaInicial} habilitado={habilitado} guardando={guardando} preparar={setCambio}/>
+        <RetiroMunicipal key={'retiro' + claveConsulta} municipio={municipio} localidades={localidades}
+          zonas={catalogo.zonas} preparar={setCambio} guardando={guardando}/></>
     ) : <div className="za-layout ct-layout">
       <section className="za-panel" aria-labelledby="ct-lista">
         <header className="za-panel-heading">
@@ -303,6 +314,15 @@ function Cobertura({ userId }) {
       </section>
     </div>}
 
+    {edicionZona && <EditarZonaDialog {...edicionZona} guardando={guardando} error={errorZona} cancelar={cancelar} guardar={guardarZona}/>}
+    {cambio?.alcance === 'retiroMunicipal' && <DialogoCobertura tituloId="ct-confirmar-retiro" cancelar={cancelar}>
+      <h2 id="ct-confirmar-retiro">Confirmar retiro municipal</h2>
+      <p>Se retirará la cobertura de <strong>{cambio.desde.nombre}</strong> en <strong>{cambio.municipio}</strong>.
+        La vista previa contiene {cambio.total} localidades de esa zona.</p><p>{cambio.valores.motivo}</p>
+      <div className="za-dialog-actions">
+        <button className="za-button za-button--soft" disabled={guardando} onClick={cancelar}>Cancelar</button>
+        <button className="za-button za-button--primary" disabled={guardando} onClick={() => guardar()}>Confirmar retiro</button>
+      </div></DialogoCobertura>}
     {creandoZona && <CrearZonaDialog cancelar={cancelar} guardar={guardarZona} guardando={guardando} error={errorZona}/>}
     {cambio?.alcance === 'municipio' && <ConfirmarMunicipio cambio={cambio} guardando={guardando}
       cancelar={cancelar} guardar={guardar}/>}

@@ -19,10 +19,11 @@ export function DialogoCobertura({ tituloId, cancelar, children }) {
 export function CrearZonaDialog({ cancelar, guardar, guardando, error }) {
   const [codigo, setCodigo] = useState('');
   const [nombre, setNombre] = useState('');
+  const [descripcion, setDescripcion] = useState('');
 
   function enviar(event) {
     event.preventDefault();
-    if (!guardando && codigo.trim() && nombre.trim()) guardar({ codigo: codigo.trim(), nombre: nombre.trim() });
+    if (!guardando && codigo.trim() && nombre.trim()) guardar({ codigo: codigo.trim(), nombre: nombre.trim(), descripcion: descripcion.trim() });
   }
 
   return <DialogoCobertura tituloId="ct-crear-zona" cancelar={cancelar}>
@@ -39,6 +40,9 @@ export function CrearZonaDialog({ cancelar, guardar, guardando, error }) {
         <input id="ct-nombre-zona" className="za-control" value={nombre} required
           disabled={guardando} onChange={event => setNombre(event.target.value)}/>
       </div>
+      <label className="za-field">Descripción (opcional)
+        <textarea className="za-control" value={descripcion} disabled={guardando} onChange={e => setDescripcion(e.target.value)}/>
+      </label>
       {error && <p className="za-notice za-notice--error" role="alert">{error}</p>}
       <div className="za-dialog-actions">
         <button className="za-button za-button--soft" type="button" disabled={guardando} onClick={cancelar}>Cancelar</button>
@@ -56,10 +60,10 @@ export function FormularioMunicipio({ municipio, localidades, zonas, zonaInicial
   const destinos = zonasDestino(zonas, null);
   const destino = destinos.find(zona => zona.id === destinoId);
   const plan = useMemo(() => planMunicipal(localidades, destinoId), [localidades, destinoId]);
-  const longitud = Array.from(motivo.trim()).length;
+  const motivoCompleto = Boolean(motivo.trim());
   const hayCambios = plan.sinZona + plan.enOtras > 0;
   const editable = habilitado && localidades.length > 0 && !guardando;
-  const puedeRevisar = editable && destino && hayCambios && longitud >= 10 && longitud <= 1000;
+  const puedeRevisar = editable && destino && hayCambios && motivoCompleto;
 
   function enviar(event) {
     event.preventDefault();
@@ -112,10 +116,8 @@ export function FormularioMunicipio({ municipio, localidades, zonas, zonaInicial
         {destino && !hayCambios && <p className="za-empty">Las localidades de este municipio ya están en esa zona.</p>}
         <div className="za-field">
           <label htmlFor="ct-motivo-municipal">Motivo del cambio</label>
-          <textarea className="za-control" id="ct-motivo-municipal" value={motivo} required maxLength={1000}
-            aria-describedby="ct-limite-municipal" disabled={!editable}
+          <textarea className="za-control" id="ct-motivo-municipal" value={motivo} required disabled={!editable}
             onChange={event => setMotivo(event.target.value)}/>
-          <p className="ct-hint" id="ct-limite-municipal">De 10 a 1000 caracteres. {longitud}/1000</p>
         </div>
         <button className="za-button za-button--primary za-submit" type="submit" disabled={!puedeRevisar}>
           Revisar asignación municipal
@@ -138,7 +140,7 @@ export function ConfirmarMunicipio({ cambio, guardando, cancelar, guardar }) {
   const requiereTraslado = cambio.plan.enOtras > 0;
   return <DialogoCobertura tituloId="ct-confirmar-municipio" cancelar={cancelar}>
     <h2 id="ct-confirmar-municipio">Confirmar asignación municipal</h2>
-    <p>Las <strong>{cambio.plan.total} localidades</strong> de <strong>{cambio.municipio}</strong> quedarán en <strong>{cambio.hacia.nombre}</strong>.</p>
+    <p>Vas a asignar <strong>{cambio.municipio}</strong> a <strong>{cambio.hacia.nombre}</strong>. El municipio tiene {cambio.plan.total} localidades en esta consulta.</p>
     <ImpactoMunicipal plan={cambio.plan}/>
     <p className="ct-reason">{cambio.valores.motivo}</p>
     {requiereTraslado && <label className="ct-traslado-opcion">

@@ -174,26 +174,19 @@ test('una respuesta inesperada obliga a comprobar el estado en vez de repetir el
 });
 
 test('el catálogo municipal inicia con municipios y zonas sin descargar localidades', async () => {
-  const { api, consultas, escrituras } = entorno({
-    respuesta: () => ({ data: {
-      version: 1,
-      municipios: [{ id: municipio, nombre: 'Mérida', activo: true, localidades: 1230, con_zona: 90 }],
-      zonas: [{ id: zonaA, nombre: 'Zona Centro', codigo: 'C', activo: true }],
-    }, error: null }),
-  });
+  const { api, consultas, escrituras } = entorno();
   const catalogo = await api.coverageMunicipalCatalog(admin);
-  assert.equal(catalogo.gestionMunicipal, true);
-  assert.equal(catalogo.municipios[0].localidades, 1230);
-  assert.deepEqual(escrituras.map(llamada => llamada.nombre), ['km_admin_catalogo_cobertura_municipal']);
-  assert.ok(consultas.every(consulta => consulta.tabla === 'perfiles'));
+  assert.equal(catalogo.municipios[0].id, municipio);
+  assert.deepEqual(catalogo.zonas.map(z => z.id), [zonaInactiva, zonaA, zonaB]);
+  assert.equal(escrituras.length, 0);
+  assert.ok(!consultas.some(row => row.tabla === 'localidades'));
 });
 
-test('si falta el SQL municipal, el catálogo previo permite seguir por localidad', async () => {
-  const { api, consultas } = entorno({ respuesta: () => ({ data: null, error: { code: 'PGRST202' } }) });
+test('la lectura por localidad no depende de una función de catálogo municipal', async () => {
+  const { api, consultas, escrituras } = entorno({ respuesta: () => ({ data: null, error: { code: 'PGRST202' } }) });
   const catalogo = await api.coverageMunicipalCatalog(admin);
-  assert.equal(catalogo.gestionMunicipal, false);
-  assert.equal(catalogo.municipios[0].id, municipio);
   assert.equal(catalogo.zonas.length, 3);
+  assert.equal(escrituras.length, 0);
   assert.ok(!consultas.some(consulta => consulta.tabla === 'localidades'));
 });
 
@@ -220,7 +213,7 @@ test('crear zona pasa Código y Nombre sin pedir datos adicionales', async () =>
   const creada = await api.createCoverageZone(admin, { codigo: '  CTR  ', nombre: '  Centro  ' });
   assert.equal(creada, zonaA);
   assert.deepEqual(escrituras, [{
-    nombre: 'km_admin_crear_zona_cobertura', args: { p_codigo: 'CTR', p_nombre: 'Centro' },
+    nombre: 'admin_crear_zona', args: { p_codigo: 'CTR', p_nombre: 'Centro', p_descripcion: null },
   }]);
 });
 
@@ -236,28 +229,59 @@ test('la vista previa distingue incorporaciones, traslados y localidades que ya 
 });
 
 test('un municipio dividido requiere confirmar traslados y luego se escribe con una sola llamada', async () => {
-  const { api, escrituras } = entorno({ respuesta: () => ({
-    data: { asignadas: 1, trasladadas: 1, sin_cambios: 1, total: 3 }, error: null,
-  }) });
+  const { api, escrituras } = entorno({ datos: { localidades: [
+    { id: localidad, municipio_id: municipio, cobertura: null },
+    { id: id(101), municipio_id: municipio, cobertura: { zona_id: zonaB } },
+    { id: id(102), municipio_id: municipio, cobertura: { zona_id: zonaA } },
+  ] }, respuesta: () => ({ data: { procesadas: 3 }, error: null }) });
   const estadoEsperado = { [localidad]: null, [id(101)]: zonaB, [id(102)]: zonaA };
   const cambio = { municipioId: municipio, zonaId: zonaA, estadoEsperado, motivo };
   await assert.rejects(api.assignMunicipality(admin, cambio), /Confirma si también quieres trasladar/);
   assert.equal(escrituras.length, 0);
   const resultado = await api.assignMunicipality(admin, { ...cambio, trasladar: true });
-  assert.equal(resultado.total, 3);
+  assert.deepEqual(resultado, { procesadas: 3 });
   assert.deepEqual(escrituras, [{
-    nombre: 'km_admin_asignar_municipio_zona',
-    args: { p_municipio_id: municipio, p_zona_id: zonaA, p_estado_esperado: estadoEsperado,
-      p_motivo: motivo, p_trasladar: true },
+    nombre: 'admin_gestionar_municipio_zona',
+    args: { p_municipio_id: municipio, p_zona_id: zonaA, p_trasladar_existentes: true, p_motivo: motivo },
   }]);
 });
 
 test('un resultado municipal incompleto obliga a revisar la zona y no repite escrituras', async () => {
-  const { api, escrituras } = entorno({ respuesta: () => ({
-    data: { asignadas: 0, trasladadas: 0, sin_cambios: 1, total: 1 }, error: null,
-  }) });
+  const { api, escrituras } = entorno({ datos: { localidades: [{ id: localidad, municipio_id: municipio, cobertura: null }] },
+    respuesta: () => ({ data: null, error: null }) });
   await assert.rejects(api.assignMunicipality(admin, {
     municipioId: municipio, zonaId: zonaA, estadoEsperado: { [localidad]: null }, motivo,
   }), { code: 'RESULT_UNKNOWN', uncertain: true });
   assert.equal(escrituras.length, 1);
+});
+
+test('relee el municipio y frena un traslado cuyo origen ha cambiado', async () => {
+  const { api, escrituras } = entorno({ datos: { localidades: [
+    { id: localidad, municipio_id: municipio, cobertura: { zona_id: zonaA } },
+  ] } });
+  await assert.rejects(api.assignMunicipality(admin, {
+    municipioId: municipio, zonaId: zonaB, estadoEsperado: { [localidad]: null }, motivo, trasladar: true,
+  }), { code: 'COVERAGE_CHANGED' });
+  assert.equal(escrituras.length, 0);
+});
+
+test('retirar municipio limita la operación a la zona confirmada', async () => {
+  const { api, escrituras } = entorno({ datos: { localidades: [
+    { id: localidad, municipio_id: municipio, cobertura: { zona_id: zonaA } },
+  ] }, respuesta: () => ({ data: 1, error: null }) });
+  const total = await api.removeMunicipality(admin, {
+    municipioId: municipio, zonaId: zonaA, estadoEsperado: { [localidad]: zonaA }, motivo,
+  });
+  assert.equal(total, 1);
+  assert.deepEqual(escrituras, [{ nombre: 'admin_retirar_municipio_zona',
+    args: { p_municipio_id: municipio, p_zona_id: zonaA, p_motivo: motivo } }]);
+});
+
+test('archivar una zona conserva su definición y acepta la respuesta void de Supabase', async () => {
+  const original = { id: zonaA, codigo: 'C', nombre: 'Zona Centro', descripcion: null, activo: true };
+  const { api, escrituras } = entorno({ datos: { zonas: [original] }, respuesta: () => ({ data: null, error: null }) });
+  await api.updateCoverageZone(admin, original, { ...original, activo: false });
+  assert.deepEqual(escrituras[0], { nombre: 'admin_actualizar_zona', args: {
+    p_zona_id: zonaA, p_codigo: 'C', p_nombre: 'Zona Centro', p_descripcion: null, p_activo: false,
+  } });
 });

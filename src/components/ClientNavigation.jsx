@@ -14,8 +14,10 @@ function ClientAccountLinks({ user }) {
     <a href="#administracion/usuarios" className="km-button km-button--soft"><Icon name="user" size={18}/>Administrar usuarios</a>
     <a href="#administracion/asignaciones" className="km-button km-button--soft"><Icon name="records" size={18}/>Asignaciones</a>
     <a href={'#' + ADMIN_COVERAGE_ROUTE} className="km-button km-button--soft"><Icon name="map" size={18}/>Cobertura territorial</a>
+    <a href="#territorio/equipos" className="km-button km-button--soft"><Icon name="user" size={18}/>Equipos de trabajo</a>
   </div>;
   if ([3, 4].includes(Number(user?.roleId))) return <div className="km-account-links">
+    {Number(user.roleId) === 3 && <a href="#territorio/equipos" className="km-button km-button--soft"><Icon name="user" size={18}/>Mis equipos</a>}
     <a href="#campo/solicitudes" className="km-button km-button--soft"><Icon name="records" size={18}/>Solicitudes básicas</a>
     <a href="#campo/asignaciones-tecnicas" className="km-button km-button--soft"><Icon name="pin" size={18}/>{Number(user.roleId) === 3 ? 'Asignar meliponarios' : 'Meliponarios asignados'}</a>
   </div>;

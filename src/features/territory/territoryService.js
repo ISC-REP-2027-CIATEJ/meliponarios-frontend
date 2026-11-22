@@ -12,6 +12,9 @@ export const obtenerCatalogoMunicipal = async userId => api().coverageMunicipalC
 export const obtenerCoberturaMunicipal = async (userId, municipioId) => api().coverageByMunicipality(userId, municipioId);
 export const crearZonaCobertura = async (userId, zona) => api().createCoverageZone(userId, zona);
 export const asignarMunicipioZona = async (userId, cambio) => api().assignMunicipality(userId, cambio);
+export const actualizarZonaCobertura = (userId, original, valores) => api().updateCoverageZone(userId, original, valores);
+export const retirarMunicipioZona = (userId, cambio) => api().removeMunicipality(userId, cambio);
+export function servicioEquipos() { return api().equipos; }
 export const obtenerSolicitudesCampo = (userId, filters) => api().list(userId, filters);
 export const obtenerFichaCampo = (userId, id) => api().detail(userId, id);
 export const tomarSolicitudCampo = (userId, id) => api().take(userId, id);
