@@ -124,7 +124,7 @@ test('no inventa coordenadas, estado operativo, fecha de publicación ni especie
   assert.equal('publicadaEn' in clean, false);
   assert.notEqual(clean.estado, 'Activo');
   for (const latitud of [null, '20.7', NaN, 91]) assert.throws(() => normalizarFichaPublica({ ...ficha(), latitud }), /verificar/);
-  for (const field of ['nombre_contacto', 'telefono_contacto', 'informacion_tecnica_verificada']) {
+  for (const field of ['telefono_contacto', 'informacion_tecnica_verificada']) {
     assert.throws(() => normalizarFichaPublica({ ...ficha(), [field]: null }), /verificar/);
   }
 });
@@ -239,4 +239,11 @@ test('el SDK real envía consultas anónimas, paginación y firma sin utilizar u
   assert.ok(calls[0].search.includes('order=id.asc'));
   assert.ok(calls[0].search.includes('limit=2'));
   assert.deepEqual(JSON.parse(calls[2].body), { expiresIn: 60, paths: [ruta(2)] });
+});
+
+test('admite una ficha pública sin nombre de contacto y conserva el teléfono público', () => {
+  const raw = { ...ficha(), nombre_contacto: null };
+  const publica = normalizarFichaPublica(raw);
+  assert.equal(publica.nombreContacto, 'Sin nombre de contacto');
+  assert.equal(publica.telefonoContacto, raw.telefono_contacto);
 });

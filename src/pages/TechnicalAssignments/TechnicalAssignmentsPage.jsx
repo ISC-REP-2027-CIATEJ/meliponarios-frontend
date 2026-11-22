@@ -1,3 +1,4 @@
+import VisitWorkflow from './VisitWorkflow';
 import { useEffect, useRef, useState } from 'react';
 import { OwnerHeader } from '../../components/ClientNavigation';
 import { validId } from '../../features/territory/territoryApi.mjs';
@@ -23,8 +24,17 @@ export default function TechnicalAssignmentsPage({ user, sessionReady, onLogout 
         <h1 className="text-3xl font-bold">Asignaciones técnicas</h1>
         <p className="my-5 leading-relaxed">Este espacio requiere una cuenta activa de coordinador o trabajador de campo.</p>
         <a href={user ? '#explorar' : '#login'} className={button}>{user ? 'Volver a Explorar' : 'Iniciar sesión'}</a>
-      </main> : <Workspace key={`${user.id}:${role}`} user={user} coordinator={role === 3}/>}
+      </main> : <EntradaVisitas key={`${user.id}:${role}`} user={user} coordinator={role === 3}/>}
   </div>;
+}
+
+function EntradaVisitas({ user, coordinator }) {
+  const [anteriores, setAnteriores] = useState(false);
+  if (coordinator && anteriores) return <>
+    <nav className="km-container py-3"><button className="km-button" onClick={() => setAnteriores(false)}>Volver a visitas y fichas técnicas</button></nav>
+    <Workspace user={user} coordinator={coordinator}/>
+  </>;
+  return <VisitWorkflow user={user} coordinator={coordinator} anteriores={() => setAnteriores(true)}/>;
 }
 
 function Workspace({ user, coordinator }) {
@@ -33,7 +43,7 @@ function Workspace({ user, coordinator }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [revision, setRevision] = useState(0);
-  const [tab, setTab] = useState('pendientes');
+  const [tab, setTab] = useState('asignadas');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [operation, setOperation] = useState(null);

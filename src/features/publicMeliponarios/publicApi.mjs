@@ -24,16 +24,16 @@ export function normalizarFichaPublica(value) {
   if (!uuid(value?.id) || !texto(value?.nombre).trim() ||
       typeof value.ofrece_venta_miel !== 'boolean' || typeof value.ofrece_visitas !== 'boolean' ||
       typeof value.informacion_tecnica_verificada !== 'boolean' ||
-      !texto(value.nombre_contacto).trim() || !texto(value.telefono_contacto).trim() ||
+      !texto(value.telefono_contacto).trim() ||
       ![value.latitud, value.longitud].every(Number.isFinite) || Math.abs(value.latitud) > 90 || Math.abs(value.longitud) > 180) throw invalido();
   return {
     id: uuid(value.id), nombre: value.nombre, descripcion: texto(value.descripcion),
     municipio: texto(value.municipio), localidad: texto(value.localidad),
-    nombreContacto: value.nombre_contacto, telefonoContacto: value.telefono_contacto,
+    nombreContacto: texto(value.nombre_contacto).trim() || 'Sin nombre de contacto', telefonoContacto: value.telefono_contacto,
     vendeMiel: value.ofrece_venta_miel, recibeVisitas: value.ofrece_visitas,
     informacionTecnicaVerificada: value.informacion_tecnica_verificada,
     estado: 'Publicado', coordenadas: [value.latitud, value.longitud],
-    // El contrato actual exige autorización de la ubicación exacta para publicar.
+    // La consulta pública ya limita las coordenadas a registros publicables.
     ubicacionAproximada: false,
     // Clave de colores que MapCanvas también utiliza para los registros propios.
     ofertaVisualDemo: value.ofrece_venta_miel ? (value.ofrece_visitas ? 'ambos' : 'miel') : (value.ofrece_visitas ? 'difusion' : null),
