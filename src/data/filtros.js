@@ -1,1 +1,3 @@
-export const filtrosIniciales = { busqueda: '', municipio: '', especie: '', conProductos: false, activos: false };
+export const filtrosIniciales = {
+  busqueda: '', municipio: '', localidad: '', especie: '', oferta: '', conProductos: false, activos: false,
+};

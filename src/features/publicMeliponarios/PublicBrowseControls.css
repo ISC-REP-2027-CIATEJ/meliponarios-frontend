@@ -1,0 +1,26 @@
+.km-search { display: flex; align-items: center; gap: 10px; min-height: 54px; min-width: 0; border: 1px solid var(--km-line); border-radius: var(--km-pill); padding: 4px 7px 4px 17px; background: white; color: var(--km-brand); box-shadow: var(--km-shadow-float); }
+.km-search-label { display: inline-flex; align-items: center; }
+.km-search input { flex: 1; align-self: stretch; width: 100%; min-width: 0; border: 0; border-radius: 20px; padding: 3px 5px; color: var(--km-ink); background: transparent; font-size: 1rem; }
+.km-search input::placeholder { color: var(--km-muted); }
+.km-search:focus-within { border-color: var(--km-focus); }
+.km-search .km-button { flex-shrink: 0; }
+.km-filters { display: flex; align-items: center; gap: 8px; padding: 4px 4px 9px; margin: 0 -4px; overflow-x: auto; scrollbar-width: thin; }
+.km-filters > * { flex: none; }
+.km-filters .km-button { white-space: nowrap; }
+.km-filter-select { position: relative; display: inline-flex; align-items: center; min-height: 44px; max-width: min(225px, 65vw); border: 1px solid var(--km-line); border-radius: var(--km-pill); padding-inline: 12px; background: white; color: var(--km-brand); box-shadow: 0 2px 7px #173c2d0d; }
+.km-filter-select:focus-within { border-color: var(--km-focus); }
+.km-filter-select select { max-width: 100%; min-width: 0; min-height: 42px; appearance: none; border: 0; border-radius: var(--km-pill); padding: 0 16px 0 7px; background: transparent; color: var(--km-brand); font-size: .83rem; font-weight: 750; text-overflow: ellipsis; cursor: pointer; }
+.km-filter-chevron { position: absolute; display: inline-flex; right: 10px; pointer-events: none; }
+.km-extra-filters { display: flex; flex-wrap: wrap; gap: 10px 17px; align-items: center; margin: 8px 0 12px; padding: 14px 17px; }
+.km-extra-filters label:not(.km-filter-select) { display: flex; align-items: center; gap: 7px; min-height: 40px; font-weight: 650; }
+.km-extra-filters input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--km-brand); }
+.km-extra-filters p { flex-basis: 100%; color: var(--km-muted); font-size: .84rem; }
+.km-public-photo-empty { color: var(--km-muted); background: var(--km-soft); }
+.km-public-photo-empty--compact { color: var(--km-brand); }
+@media (max-width: 740px) {
+  .km-filters { scrollbar-width: none; }
+}
+@media (max-width: 480px) {
+  .km-search { min-height: 51px; gap: 5px; padding-left: 13px; }
+  .km-search input { font-size: .91rem; }
+}

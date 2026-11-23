@@ -1,10 +1,60 @@
-/* Aislamiento del CSS heredado del login. El diseño está en Tailwind. */
-@layer base { .explore-page :where(h1,h2,h3,p) { margin: 0; } }
-.explore-page :where(button,input,select) { font: inherit; }
-.explore-page :where(input,select) { box-shadow: none; }
-.explore-page :where(label) { font-size: 14px; margin-bottom: 0; }
-.explore-page :where(button,a,input,select):focus-visible { outline: 3px solid #a67619; outline-offset: 4px; }
-.explore-page dialog::backdrop { background: #082f21aa; backdrop-filter: blur(4px); }
-.explore-page dialog { max-height: 90svh; overflow: auto; }
-/* Las reglas antiguas sin capa tienen prioridad sobre Tailwind. */
-.explore-page input { width: 100%; height: 52px; border: 0; border-radius: 0; padding: 0 12px; background: transparent; color: #163f2e; font-size: 16px; }
+.km-skip:focus { position: absolute; z-index: 1200; top: 8px; left: 8px; padding: 9px 13px; border-radius: 8px; background: white; color: var(--km-brand); }
+.km-home-hero { border-radius: 0 0 clamp(26px, 6vw, 54px) clamp(26px, 6vw, 54px); padding: clamp(22px, 4.1vw, 53px) 0 clamp(48px, 6.2vw, 82px); background: var(--km-brand-dark); color: white; }
+.km-home-hero .km-page-title { max-width: 20ch; font-size: clamp(1.85rem, 4.6vw, 3.75rem); }
+.km-home-hero .km-button { background: white; border-color: white; color: var(--km-brand); }
+.km-home-hero .km-button:hover { background: var(--km-soft); color: var(--km-brand); }
+.km-home-greeting { margin-bottom: 8px; color: #ceead8; font-size: .98rem; font-weight: 650; }
+.km-home-content { position: relative; padding-block-end: 42px; }
+.km-home-controls { transform: translateY(-27px); margin-bottom: -22px; }
+.km-home-controls .km-search { margin-bottom: 11px; }
+.km-home-actions { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: clamp(4px, 2.5vw, 18px); width: min(100%, 560px); margin: 7px auto 18px; }
+.km-home-actions > * { display: grid; gap: 6px; place-items: center; min-width: 0; border: 0; border-radius: var(--km-radius-small); padding: 3px; background: transparent; color: var(--km-ink); text-decoration: none; font-size: .83rem; font-weight: 750; }
+.km-home-actions .km-icon-tile { width: clamp(49px, 8vw, 64px); height: clamp(49px, 8vw, 64px); border-radius: clamp(16px, 2vw, 22px); }
+.km-home-actions > :where(:hover, [aria-pressed="true"]) .km-icon-tile { box-shadow: var(--km-shadow); color: white; background: var(--km-brand); }
+.km-home-actions > :where(:hover, [aria-pressed="true"]) [data-tone="miel"] { background: var(--km-honey); }
+.km-home-actions > :where(:hover, [aria-pressed="true"]) [data-tone="difusion"] { background: var(--km-visit); }
+.km-home-actions > :where(:hover, [aria-pressed="true"]) [data-tone="ambos"] { background: var(--km-both); }
+.km-home-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(7px, 2vw, 18px); margin-block: 0 24px; }
+.km-home-stats > div { display: grid; grid-template-rows: auto auto 1fr; justify-items: start; gap: 3px; padding: clamp(10px, 2.5vw, 21px); color: var(--km-brand); }
+.km-home-stats dt { grid-row: 3; color: var(--km-muted); font-size: clamp(.71rem, 1.5vw, .89rem); }
+.km-home-stats dd { font-size: clamp(1.27rem, 3vw, 1.92rem); line-height: 1.22; font-weight: 800; }
+.km-home-discover { display: grid; align-items: start; gap: 24px; margin-block: 0 23px; }
+.km-home-discover > section { min-width: 0; }
+.km-home-map { height: clamp(205px, 34vw, 330px); overflow: hidden; border: 1px solid var(--km-line); border-radius: var(--km-radius); background: #dcebe7; box-shadow: var(--km-shadow); }
+.km-featured:not(:has(.km-feature-card)) { display: none; }
+.km-featured .km-heading-row { min-height: 44px; }
+.km-feature-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(200px, 73%); gap: 12px; overflow: auto; padding-bottom: 6px; scroll-snap-type: inline mandatory; scrollbar-width: thin; }
+.km-feature-cards:has(.km-feature-card:only-child) { grid-auto-columns: 100%; }
+.km-feature-card { position: relative; isolation: isolate; display: flex; min-height: clamp(185px, 27vw, 290px); align-items: end; overflow: hidden; border: 0; border-radius: var(--km-radius); padding: 15px; background: var(--km-brand); color: white; text-align: left; scroll-snap-align: start; }
+.km-feature-card img { position: absolute; z-index: -2; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.km-feature-card::after { position: absolute; z-index: -1; inset: 0; background: linear-gradient(transparent 35%, #082c22ee); content: ""; }
+.km-feature-card-tag { position: absolute; top: 12px; left: 12px; }
+.km-feature-card-title { min-width: 0; }
+.km-feature-card-title strong { font-size: 1.13rem; overflow-wrap: anywhere; }
+.km-feature-card-title > span { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: #edf8f2; }
+.km-home-results-title { display: flex; align-items: center; gap: 8px 11px; flex-wrap: wrap; }
+.km-home-results { display: grid; gap: 11px 15px; }
+.km-home-card { display: grid; grid-template-columns: minmax(58px, 76px) minmax(0, 1fr); gap: 11px; align-items: center; padding: 9px; }
+.km-home-card-photo { aspect-ratio: 1; width: 100%; overflow: hidden; border: 0; border-radius: 15px; padding: 0; background: var(--km-soft); }
+.km-home-card-body { display: flex; min-height: 68px; min-width: 0; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-radius: 10px; padding: 1px 4px 1px 0; background: transparent; color: var(--km-ink); text-align: left; }
+.km-home-card-body:hover strong { text-decoration: underline; text-underline-offset: 3px; }
+.km-home-card-text { display: grid; gap: 4px; min-width: 0; }
+.km-home-card-text strong { font-size: 1rem; line-height: 1.2; overflow-wrap: anywhere; }
+.km-home-place { display: flex; align-items: center; gap: 3px; color: var(--km-muted); font-size: .79rem; }
+.km-home-card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.km-home-card-arrow { display: grid; flex: 0 0 30px; height: 30px; place-items: center; border-radius: 50%; background: var(--km-soft); color: var(--km-brand); }
+.km-photo-dialog { --km-dialog-width: 750px; }
+.km-home-content .km-status + .km-home-results { margin-top: 12px; }
+
+@media (min-width: 820px) {
+  .km-home-overview { display: grid; grid-template-columns: minmax(0, .74fr) minmax(0, 1.26fr); gap: 24px; align-items: stretch; margin: 7px 0 23px; }
+  .km-home-overview .km-home-actions { margin: 0; align-items: center; }
+  .km-home-overview .km-home-stats { margin: 0; }
+  .km-home-results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .km-home-discover:has(.km-feature-card) { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  .km-home-discover .km-feature-card { min-height: clamp(205px, 34vw, 330px); }
+}
+@media (max-width: 385px) {
+  .km-home-card { grid-template-columns: 63px minmax(0, 1fr); }
+  .km-home-card-arrow { flex-basis: 24px; height: 24px; }
+}

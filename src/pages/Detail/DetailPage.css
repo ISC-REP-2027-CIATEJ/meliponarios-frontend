@@ -1,0 +1,32 @@
+.km-detail-grid { display: grid; gap: 18px; }
+.km-detail-column { display: grid; align-content: start; gap: 18px; min-width: 0; }
+@media (min-width: 850px) {
+  .km-detail-grid { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+}
+.detalle-location {
+  z-index: 0;
+  background: #e1ebe2;
+  font-family: var(--km-font);
+}
+.detalle-location .leaflet-control-attribution {
+  font-size: 10px;
+  background: #fffffff0;
+}
+.detalle-location .leaflet-control-attribution a {
+  color: #154d36;
+}
+.detalle-location .leaflet-control-zoom a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+}
+.detalle-pin {
+  border: 3px solid white;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #164c35;
+  color: white;
+  box-shadow: 0 2px 8px #123f2d66;
+  font-size: 28px;
+}

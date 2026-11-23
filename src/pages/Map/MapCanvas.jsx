@@ -19,7 +19,7 @@ function gruposVisibles(map, puntos) {
   return grupos;
 }
 
-const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect, ubicacion, mostrarPuntos }, ref) {
+const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect, ubicacion, mostrarPuntos, preview = false }, ref) {
   const contenedor = useRef(null);
   const mapa = useRef(null);
   const capa = useRef(null);
@@ -31,23 +31,27 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
   useEffect(() => { elegir.current = onSelect; }, [onSelect]);
 
   useEffect(() => {
-    const map = L.map(contenedor.current, { zoomControl: false, minZoom: 3, maxZoom: 19, scrollWheelZoom: false });
+    const map = L.map(contenedor.current, {
+      zoomControl: false, zoomAnimation: false, minZoom: 3, maxZoom: 19, scrollWheelZoom: false,
+      dragging: !preview, touchZoom: !preview, doubleClickZoom: !preview, boxZoom: !preview, keyboard: !preview,
+    });
     mapa.current = map;
     map.fitBounds(limitesPeninsula, { padding: [18, 18] });
-    L.control.zoom({ position: 'topright', zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(map);
-    L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+    if (!preview) {
+      L.control.zoom({ position: 'topright', zoomInTitle: 'Acercar', zoomOutTitle: 'Alejar' }).addTo(map);
+      L.control.scale({ imperial: false, position: 'bottomleft' }).addTo(map);
+    }
     marcadores.current = L.layerGroup().addTo(map);
     ubicacionCapa.current = L.layerGroup().addTo(map);
-    const resize = new ResizeObserver(() => map.invalidateSize({ pan: false }));
-    resize.observe(contenedor.current);
-    return () => { resize.disconnect(); map.remove(); mapa.current = null; };
-  }, []);
+    const resize = preview ? null : new ResizeObserver(() => map.invalidateSize({ pan: false }));
+    resize?.observe(contenedor.current);
+    return () => { resize?.disconnect(); map.remove(); mapa.current = null; };
+  }, [preview]);
 
   useEffect(() => {
     const map = mapa.current;
     let fallo = false;
     let cargadas = 0;
-    setEstado('cargando');
     const tiles = L.tileLayer(mapConfig.url, { attribution: mapConfig.attribution, maxZoom: mapConfig.maxZoom });
     capa.current = tiles;
     tiles.on('tileload', () => { cargadas++; if (!fallo) setEstado('listo'); });
@@ -55,7 +59,7 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
     tiles.addTo(map);
     const timeout = setTimeout(() => { if (!cargadas) setEstado('error'); }, 12000);
     return () => { clearTimeout(timeout); tiles.off(); if (map.hasLayer(tiles)) map.removeLayer(tiles); };
-  }, [intento]);
+  }, [intento, preview]);
 
   useEffect(() => {
     const map = mapa.current;
@@ -67,17 +71,19 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
         const items = grupo.puntos;
         const agrupado = items.length > 1;
         const punto = items[0];
+        const privado = items.some(item => item.privadoDemo);
         const centro = agrupado ? L.latLngBounds(items.map(m => m.coordenadas)).getCenter() : punto.coordenadas;
-        const nombre = agrupado ? `Acercar grupo de ${items.length} meliponarios` : punto.nombre;
+        const nombre = agrupado ? `Acercar grupo de ${items.length} meliponarios` : punto.privadoDemo ? `Privado: ${punto.nombre}. ${punto.etiquetaPrivada}` : punto.nombre;
+        const clasesOferta = { miel: 'kaab-miel', difusion: 'kaab-difusion', ambos: 'kaab-ambos' };
         const icon = L.divIcon({
-          className: `kaab-marker ${agrupado ? 'kaab-cluster' : punto.estado === 'Activo' ? 'kaab-activo' : 'kaab-pendiente'} ${items.some(m => m.id === seleccionId) ? 'kaab-elegido' : ''}`,
+          className: `kaab-marker ${privado ? 'kaab-privado' : ''} ${agrupado ? 'kaab-cluster' : clasesOferta[punto.ofertaVisualDemo] || 'kaab-sin-clasificar'} ${items.some(m => m.id === seleccionId) ? 'kaab-elegido' : ''}`,
           html: `<span class="kaab-pin">${abeja}${agrupado ? `<b>${items.length}</b>` : ''}</span>`,
           iconSize: [46, 52], iconAnchor: [23, 48],
         });
-        const marker = L.marker(centro, { icon, title: nombre, alt: nombre, keyboard: true }).addTo(capaMarcadores);
+        const marker = L.marker(centro, { icon, title: nombre, alt: nombre, interactive: !preview, keyboard: !preview }).addTo(capaMarcadores);
         const element = marker.getElement();
         element.setAttribute('aria-label', nombre);
-        marker.on('click', () => {
+        if (!preview) marker.on('click', () => {
           if (agrupado) map.fitBounds(items.map(m => m.coordenadas), { padding: [70, 70], maxZoom: 11 });
           else elegir.current(punto.id);
         });
@@ -86,7 +92,7 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
     dibujar();
     map.on('zoomend', dibujar);
     return () => { map.off('zoomend', dibujar); capaMarcadores.clearLayers(); };
-  }, [puntos, seleccionId, mostrarPuntos]);
+  }, [puntos, seleccionId, mostrarPuntos, preview]);
 
   useEffect(() => {
     const grupo = ubicacionCapa.current;
@@ -94,19 +100,33 @@ const MapCanvas = forwardRef(function MapCanvas({ puntos, seleccionId, onSelect,
     if (!ubicacion) return;
     L.circle(ubicacion.coordenadas, { radius: ubicacion.precision, color: '#2563eb', weight: 1, fillOpacity: 0.10 }).addTo(grupo);
     L.circleMarker(ubicacion.coordenadas, { radius: 8, color: 'white', weight: 3, fillColor: '#2563eb', fillOpacity: 1 }).addTo(grupo).bindTooltip('Tu ubicación aproximada');
-  }, [ubicacion]);
+  }, [ubicacion, preview]);
+
+  useEffect(() => {
+    if (!preview) return;
+    const map = mapa.current;
+    const bounds = puntos.length ? puntos.map(item => item.coordenadas) : limitesPeninsula;
+    function ajustarVistaPrevia() {
+      map.invalidateSize({ pan: false });
+      map.fitBounds(bounds, { padding: [37, 37], maxZoom: 9 });
+    }
+    ajustarVistaPrevia();
+    const resize = new ResizeObserver(ajustarVistaPrevia);
+    resize.observe(contenedor.current);
+    return () => resize.disconnect();
+  }, [puntos, preview]);
 
   useImperativeHandle(ref, () => ({
     peninsula: () => mapa.current?.fitBounds(limitesPeninsula, { padding: [18, 18] }),
     resultados: () => { if (puntos.length) mapa.current?.fitBounds(puntos.map(m => m.coordenadas), { padding: [65, 65], maxZoom: 11 }); },
-    seleccionar: punto => mapa.current?.setView(punto.coordenadas, 12),
+    seleccionar: punto => mapa.current?.setView(punto.coordenadas, punto.ubicacionAproximada ? 9 : 12),
     localizar: coordenadas => mapa.current?.setView(coordenadas, 11),
   }), [puntos]);
 
-  return <div className="relative h-full min-h-[420px]">
-    <div ref={contenedor} className="kaab-map h-full min-h-[420px]" role="region" aria-label="Mapa interactivo de la península de Yucatán"/>
-    {estado !== 'listo' && <div className="absolute bottom-12 left-3 right-16 z-[800] max-w-sm rounded-xl bg-white p-3 text-sm text-[#25452f] shadow-lg" role="status">
-      {estado === 'cargando' ? 'Cargando el mapa…' : <>No se pudo cargar parte del mapa. Revisa tu conexión.<button className="mt-2 block min-h-11 rounded-lg border border-solid border-[#ccd6c4] bg-[#edf1e7] px-4" onClick={() => setIntento(n => n + 1)}>Reintentar mapa</button></>}
+  return <div className={'kaab-map-frame' + (preview ? ' kaab-map-frame--preview' : '')}>
+    <div ref={contenedor} className="kaab-map" role="region" aria-label={preview ? 'Vista previa de Yucatán' : 'Mapa interactivo de la península de Yucatán'}/>
+    {estado !== 'listo' && <div className="kaab-map-status" role="status">
+      {estado === 'cargando' ? 'Cargando el mapa…' : preview ? 'Vista previa del mapa sin conexión.' : <>No se pudo cargar parte del mapa. Revisa tu conexión.<button type="button" className="km-button km-button--soft mt-2" onClick={() => { setEstado('cargando'); setIntento(n => n + 1); }}>Reintentar mapa</button></>}
     </div>}
   </div>;
 });

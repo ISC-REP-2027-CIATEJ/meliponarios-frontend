@@ -1,0 +1,23 @@
+import { supabase, comprobarConfiguracion } from '../../lib/supabase';
+import { createTerritoryApi } from './territoryApi.mjs';
+const service = createTerritoryApi(supabase);
+function api() { comprobarConfiguracion(); return service; }
+export const obtenerAsignaciones = userId => api().assignments(userId);
+export const asignarZona = (userId, values) => api().assign(userId, values);
+export const finalizarAsignacion = (userId, id) => api().finish(userId, id);
+export const obtenerCobertura = async userId => api().coverage(userId);
+export const obtenerHistorialCobertura = async (userId, localidadId, pagina) => api().coverageHistory(userId, localidadId, pagina);
+export const cambiarCobertura = async (userId, cambio) => api().changeCoverage(userId, cambio);
+export const obtenerCatalogoMunicipal = async userId => api().coverageMunicipalCatalog(userId);
+export const obtenerCoberturaMunicipal = async (userId, municipioId) => api().coverageByMunicipality(userId, municipioId);
+export const crearZonaCobertura = async (userId, zona) => api().createCoverageZone(userId, zona);
+export const asignarMunicipioZona = async (userId, cambio) => api().assignMunicipality(userId, cambio);
+export const actualizarZonaCobertura = (userId, original, valores) => api().updateCoverageZone(userId, original, valores);
+export const retirarMunicipioZona = (userId, cambio) => api().removeMunicipality(userId, cambio);
+export function servicioEquipos() { return api().equipos; }
+export const obtenerSolicitudesCampo = (userId, filters) => api().list(userId, filters);
+export const obtenerFichaCampo = (userId, id) => api().detail(userId, id);
+export const tomarSolicitudCampo = (userId, id) => api().take(userId, id);
+export const resolverSolicitudCampo = (userId, id, decision, comment) => api().resolve(userId, id, decision, comment);
+export const enviarSolicitudReal = (userId, id, state) => api().send(userId, id, state);
+export const obtenerRevisionesCliente = (userId, id) => api().ownerReviews(userId, id);

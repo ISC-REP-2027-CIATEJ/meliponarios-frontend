@@ -29,12 +29,43 @@ export async function register(datos) {
   };
 }
 
-// Adaptamos el usuario para que el login siga mostrando su nombre.
-function prepararUsuario(usuario) {
+// Etiquetas correspondientes a los IDs confirmados en public.roles.
+const rolesPorId = Object.freeze({
+  1: "Administrador general",
+  2: "Investigador de consulta",
+  3: "Coordinador de campo",
+  4: "Trabajador de campo",
+  5: "Cliente",
+});
+
+// Consultamos el perfil propio para validar su estado y mostrar el rol asignado.
+async function prepararUsuario(usuario) {
+  const { data: perfil, error } = await supabase
+    .from("perfiles")
+    .select("rol_id, activo")
+    .eq("id", usuario.id)
+    .maybeSingle();
+
+  if (error) {
+    await supabase.auth.signOut();
+    throw new Error("No se pudo validar tu perfil: " + error.message);
+  }
+
+  if (!perfil || perfil.activo !== true) {
+    await supabase.auth.signOut();
+    throw new Error("No encontramos un perfil activo para esta cuenta.");
+  }
+
+  const nombre = usuario.user_metadata?.nombre?.trim() || "";
+  const apellidos = usuario.user_metadata?.apellidos?.trim() || "";
+  const roleId = Number(perfil.rol_id);
+
   return {
     id: usuario.id,
     email: usuario.email,
-    name: usuario.user_metadata?.nombre || '',
+    name: [nombre, apellidos].filter(Boolean).join(" "),
+    roleId,
+    roleName: rolesPorId[roleId] || "Rol no identificado",
   };
 }
 
