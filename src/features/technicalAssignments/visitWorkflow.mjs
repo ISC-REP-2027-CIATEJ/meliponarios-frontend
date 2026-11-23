@@ -18,7 +18,9 @@ export function crearFlujoVisitas(client) {
   async function lista(nombre, clave, parametros = {}) {
     const rows = [];
     for (;;) {
-      const page = await leer(client.rpc(nombre, parametros).order(clave).range(rows.length, rows.length + listSize - 1));
+      let consulta = client.rpc(nombre, parametros);
+      for (const campo of clave.split(',')) consulta = consulta.order(campo);
+      const page = await leer(consulta.range(rows.length, rows.length + listSize - 1));
       if (!Array.isArray(page)) throw new Error('La respuesta de la bandeja está incompleta.');
       if (!page.length) return rows;
       rows.push(...page);
@@ -32,6 +34,17 @@ export function crearFlujoVisitas(client) {
   }
 
   return {
+    agenda: () => lista('coord_agenda_visitas_tecnicas', 'meliponario_id'),
+    historial: () => lista('coord_consultar_visitas_tecnicas', 'asignacion_id'),
+    miembros: () => lista('coord_mis_grupos_trabajadores', 'grupo_id,usuario_id'),
+    async candidatos(registro) {
+      const [elegibles, miembros] = await Promise.all([
+        lista('coord_trabajadores_para_visita', 'usuario_id', { p_meliponario_id: id(registro) }),
+        lista('coord_mis_grupos_trabajadores', 'grupo_id,usuario_id'),
+      ]);
+      const propios = new Set(miembros.map(p => p.usuario_id));
+      return elegibles.filter(p => propios.has(p.usuario_id));
+    },
     pendientes: () => lista('coord_meliponarios_pendientes_visita', 'meliponario_id'),
     revisiones: () => lista('coord_bandeja_formularios_tecnicos', 'visita_tecnica_id'),
     visitasPropias: () => lista('mis_visitas_tecnicas_trabajador_detalle', 'asignacion_id'),

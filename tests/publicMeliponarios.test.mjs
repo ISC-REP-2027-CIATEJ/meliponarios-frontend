@@ -9,7 +9,7 @@ const ficha = (n = 1) => ({
   municipio: 'Valladolid', localidad: 'Localidad autorizada', latitud: 20.7, longitud: -88.2,
   nombre_contacto: 'Contacto público', telefono_contacto: '9991234567',
   categoria_marcador: 'venta_miel', ofrece_venta_miel: true, ofrece_visitas: false,
-  informacion_tecnica_verificada: false,
+  informacion_tecnica_verificada: true,
 });
 const origen = 'https://kaabmap.invalid';
 const ruta = n => id(1) + '/' + id(n) + '.webp';
@@ -100,7 +100,7 @@ test('rechaza UUID distinto, duplicados y el formato de la propuesta antigua', a
 });
 
 test('la lista blanca muestra solo contacto autorizado y no arrastra cuentas ni comentarios', () => {
-  const raw = { ...ficha(), email: 'SECRETO', responsable_principal_id: id(90), comentario: 'INTERNO',
+  const raw = { ...ficha(), informacion_tecnica_verificada: false, email: 'SECRETO', responsable_principal_id: id(90), comentario: 'INTERNO',
     telefono: 'PRIVADO', referencia: 'PRIVADA', imagenes: ['foto-no-autorizada'], productos: [{ precio: 10 }],
     especies: [{ cantidad_cajas: 900 }], estado_operativo: 'sin_verificar' };
   const clean = normalizarFichaPublica(raw);
@@ -124,7 +124,8 @@ test('no inventa coordenadas, estado operativo, fecha de publicación ni especie
   assert.equal('publicadaEn' in clean, false);
   assert.notEqual(clean.estado, 'Activo');
   for (const latitud of [null, '20.7', NaN, 91]) assert.throws(() => normalizarFichaPublica({ ...ficha(), latitud }), /verificar/);
-  for (const field of ['telefono_contacto', 'informacion_tecnica_verificada']) {
+  assert.equal(normalizarFichaPublica({ ...ficha(), telefono_contacto: null }).telefonoContacto, '');
+  for (const field of ['informacion_tecnica_verificada']) {
     assert.throws(() => normalizarFichaPublica({ ...ficha(), [field]: null }), /verificar/);
   }
 });
@@ -136,7 +137,7 @@ test('los colores derivan de actividades reales y no de etiquetas arbitrarias', 
 });
 
 test('la búsqueda usa nombre, municipio y localidad; los filtros sin datos públicos no ocultan registros', () => {
-  const item = normalizarFichaPublica({ ...ficha(), nombre: 'Abejas de Yucatán' });
+  const item = normalizarFichaPublica({ ...ficha(), informacion_tecnica_verificada: false, nombre: 'Abejas de Yucatán' });
   assert.equal(filtrarPublicos([item], { busqueda: 'yucatan' }).length, 1);
   assert.equal(filtrarPublicos([item], { busqueda: 'localidad autorizada' }).length, 1);
   assert.equal(filtrarPublicos([item], { municipio: 'Valladolid', especie: 'filtro antiguo', conProductos: true }).length, 1);

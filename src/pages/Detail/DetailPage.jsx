@@ -3,6 +3,7 @@ import { OwnerHeader } from '../../components/ClientNavigation';
 import { OfertaTag } from '../../features/publicMeliponarios/PublicBrowseControls';
 import { enlaceTelefono } from '../../features/publicMeliponarios/publicApi.mjs';
 import { usePublicFicha } from '../../features/publicMeliponarios/usePublicMeliponarios';
+import FotoProductoPublico from '../../features/publicMeliponarios/FotoProductoPublico';
 import PublicGallery from '../../features/publicMeliponarios/PublicGallery';
 import Icon from '../Explore/Icon';
 import LocationMap from './LocationMap';
@@ -59,15 +60,24 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
                 <h2 className="km-section-title">Acerca del meliponario</h2>
                 <p className="mt-3 whitespace-pre-line text-muted">{sitio.descripcion || 'Esta ficha no incluye una descripción.'}</p>
               </section>
-              <section className={panel}><h2 className="km-section-title flex items-center gap-2"><Icon name="bee"/>Tipos de abejas</h2><p className="mt-3 text-sm text-muted">{sitio.especies.join(' · ') || 'Los tipos de abejas aún no están disponibles en la ficha pública.'}</p></section>
-              <section className={panel}><h2 className="km-section-title flex items-center gap-2"><Icon name="bag"/>Productos de la colmena</h2><p className="mt-3 text-sm text-muted">{sitio.productos.join(' · ') || 'El catálogo de productos aún no está disponible.'}</p></section>
+              <section className={panel}><h2 className="km-section-title">Tipos de abejas</h2>
+                {sitio.abejas.length ? <ul className="mt-3 grid gap-3">{sitio.abejas.map(a => <li key={a.cientifico || a.nombre}>
+                  <strong>{a.nombre}</strong> {a.cientifico !== a.nombre && <i>{a.cientifico}</i>}
+                  <p>{[a.cajas !== null && a.cajas + ' cajas', a.jobones !== null && a.jobones + ' jobones'].filter(Boolean).join(' · ')}</p>
+                </li>)}</ul> : <p>{sitio.especiesDisponibles ? 'Sin especies en la ficha pública.' : 'No se pudo consultar el inventario de abejas.'}</p>}
+              </section>
+              {sitio.vendeMiel && <section className={panel}><h2 className="km-section-title">Productos de la colmena</h2>
+                {sitio.productosPublicos.length ? <ul className="mt-3 grid gap-3">{sitio.productosPublicos.map(p => <li key={p.nombre}>
+                  <FotoProductoPublico producto={p}/><strong>{p.nombre}</strong> · {p.disponibilidad}{p.descripcion && <p>{p.descripcion}</p>}
+                </li>)}</ul> : <p>{sitio.productosDisponibles ? 'Sin productos disponibles por ahora.' : 'No se pudo consultar la oferta.'}</p>}
+              </section>}
             </div>
             <aside className="km-detail-column">
               <section className={panel}>
                 <h2 className="km-section-title flex items-center gap-2"><Icon name="phone"/>Contacto y visitas</h2>
                 <dl className="mt-4 grid gap-4 text-sm">
                   <div><dt className="font-semibold">Nombre de contacto</dt><dd className="mt-1 wrap-anywhere text-muted">{sitio.nombreContacto}</dd></div>
-                  <div><dt className="font-semibold">Teléfono de contacto</dt><dd className="mt-1 wrap-anywhere">{telefono ? <a href={telefono} className={primario}><Icon name="phone" size={17}/>{sitio.telefonoContacto}</a> : sitio.telefonoContacto}</dd></div>
+                  <div><dt className="font-semibold">Teléfono de contacto</dt><dd className="mt-1 wrap-anywhere">{telefono ? <a href={telefono} className={primario}><Icon name="phone" size={17}/>{sitio.telefonoContacto}</a> : sitio.telefonoContacto || 'Sin teléfono público'}</dd></div>
                 </dl>
               </section>
               <section className={panel}>

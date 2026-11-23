@@ -4,7 +4,7 @@ import { crearCatalogo, prepararImagen, rutaObjeto } from '../src/features/admin
 
 const id = '11111111-1111-4111-8111-111111111111';
 const otro = '22222222-2222-4222-8222-222222222222';
-const config = { bucket: 'prueba', plantilla: 'catalogo/{uuid}.{ext}' };
+const config = { bucket: 'prueba' };
 const foto = new Blob([Uint8Array.of(255,216,255,224)], {type:'image/jpeg'});
 const existente = { id, nombre:'Producto de prueba', descripcion:null, imagen_storage:'archivo.jpg', activo:true, fecha_actualizacion:'2026-11-22' };
 const valores = { nombre:' Miel ', descripcion:' ', archivo:foto };
@@ -55,15 +55,16 @@ test('edición sin imagen nueva conserva la existente, aun con configuración in
   assert.equal(e.llamadas.at(-1).nombre,'admin_actualizar_producto');
 });
 
-test('permite elegir un archivo existente y rechaza uno que no puede leerse', async()=>{
-  const e=entorno(); await e.api.guardar(id,null,{...valores,archivo:null,rutaExistente:'guardada.jpg'});
+test('el alta exige un archivo y descarta parámetros de ruta manuales', async()=>{
+  const e=entorno();
+  await assert.rejects(e.api.guardar(id,null,{...valores,archivo:null,rutaExistente:'guardada.jpg'}),/fotografía/);
   assert.equal(e.subidas.length,0);
-  await assert.rejects(e.api.guardar(id,null,{...valores,archivo:null,rutaExistente:'ausente.jpg'}),/leer/);
+  assert.equal(e.llamadas.length,0);
 });
 
 test('rechazo confirmado limpia solo la foto nueva y una respuesta incierta la conserva',async()=>{
   const rechazo=entorno({errorRpc:{code:'23514',message:'Regla del catálogo'}});
-  await assert.rejects(rechazo.api.guardar(id,existente,valores),/Regla/);
+  await assert.rejects(rechazo.api.guardar(id,existente,valores),/rechazó/);
   assert.deepEqual(rechazo.eliminadas,['catalogo/'+otro+'.jpg']);
   const red=entorno({errorRpc:'red'});
   await assert.rejects(red.api.guardar(id,null,valores),e=>e.incierto===true);
@@ -78,7 +79,7 @@ test('las operaciones de estado aceptan void, preservan el registro y detectan c
   const cambiado=entorno({lectura:{...existente,nombre:'Otro'}});await assert.rejects(cambiado.api.cambiarEstado(id,existente),/cambió/);
 });
 
-test('respeta la plantilla, el tamaño y el tipo real del archivo', async()=>{
+test('respeta las extensiones admitidas, el tamaño y el tipo real del archivo', async()=>{
   assert.equal(await prepararImagen(foto,{...config,extensiones:['jpeg']},()=>otro),'catalogo/'+otro+'.jpeg');
   await assert.rejects(prepararImagen(foto,{...config,maxBytes:2},()=>otro),/tamaño/);
   await assert.rejects(prepararImagen(foto,{...config,tipos:['image/png']},()=>otro),/admitida/);
@@ -86,7 +87,19 @@ test('respeta la plantilla, el tamaño y el tipo real del archivo', async()=>{
   for(const ruta of ['../foto.jpg','/raiz','https://ejemplo.test/foto',''])assert.throws(()=>rutaObjeto(ruta));
 });
 
-test('sin plantilla admite un destino explícito y verifica la extensión',async()=>{
-  assert.equal(await prepararImagen(foto,{bucket:'prueba'},()=>otro,'ruta-confirmada/miel.jpg'),'ruta-confirmada/miel.jpg');
-  await assert.rejects(prepararImagen(foto,{bucket:'prueba'},()=>otro,'ruta-confirmada/miel.png'),/extensión/);
+test('genera el destino con UUID para JPEG, PNG y WebP incluso si la configuración anterior no tenía plantilla', async()=>{
+  const png = new Blob([Uint8Array.of(137,80,78,71,13,10,26,10)],{type:'image/png'});
+  const webp = new Blob([Uint8Array.of(82,73,70,70,0,0,0,0,87,69,66,80)],{type:'image/webp'});
+  for (const [blob, ext] of [[foto,'jpg'],[png,'png'],[webp,'webp']]) {
+    assert.equal(await prepararImagen(blob,{...config,plantilla:null},()=>otro),'catalogo/'+otro+'.'+ext);
+  }
+  await assert.rejects(prepararImagen(foto,config,()=>'sin-id'),/preparar/);
+});
+
+test('al reemplazar fotografía, la actualización recibe el mismo destino que Storage', async()=>{
+  const e=entorno();await e.api.guardar(id,existente,valores);
+  assert.equal(e.subidas.length,1);
+  assert.equal(e.subidas[0].ruta,'catalogo/'+otro+'.jpg');
+  assert.equal(e.llamadas.at(-1).args.p_imagen_storage,e.subidas[0].ruta);
+  assert.equal(e.llamadas.at(-1).nombre,'admin_actualizar_producto');
 });
