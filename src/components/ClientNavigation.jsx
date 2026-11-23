@@ -12,6 +12,7 @@ export function KaabMapBrand({ link = true }) {
 function ClientAccountLinks({ user }) {
   if (isAdminUser(user)) return <div className="km-account-links">
     <a href="#administracion/usuarios" className="km-button km-button--soft"><Icon name="user" size={18}/>Administrar usuarios</a>
+    <a href="#administracion/productos" className="km-button km-button--soft"><Icon name="records" size={18}/>Catálogo de productos</a>
     <a href="#administracion/asignaciones" className="km-button km-button--soft"><Icon name="records" size={18}/>Asignaciones</a>
     <a href={'#' + ADMIN_COVERAGE_ROUTE} className="km-button km-button--soft"><Icon name="map" size={18}/>Cobertura territorial</a>
     <a href="#territorio/equipos" className="km-button km-button--soft"><Icon name="user" size={18}/>Equipos de trabajo</a>

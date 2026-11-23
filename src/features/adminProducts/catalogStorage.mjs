@@ -1,0 +1,1 @@
+export const almacenProductos = {"bucket" : "kaabmap-productos", "plantilla" : null, "extensiones" : null, "tipos" : ["image/jpeg","image/png","image/webp"], "maxBytes" : 5242880};

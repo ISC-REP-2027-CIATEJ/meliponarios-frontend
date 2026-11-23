@@ -13,6 +13,7 @@ import { getSession, logout } from "./services/authService";
 
 const WorkTeamsPage = lazy(() => import('./pages/WorkTeams/WorkTeamsPage'));
 const AdminAssignmentsPage = lazy(() => import('./pages/AdminAssignments/AdminAssignmentsPage'));
+const AdminProductsPage = lazy(() => import('./pages/AdminProducts/AdminProductsPage'));
 const AdminCoveragePage = lazy(() => import('./pages/AdminCoverage/AdminCoveragePage'));
 const FieldReviewsPage = lazy(() => import('./pages/FieldReviews/FieldReviewsPage'));
 const TechnicalAssignmentsPage = lazy(() => import('./pages/TechnicalAssignments/TechnicalAssignmentsPage'));
@@ -21,7 +22,7 @@ const OwnerMeliponariosPage = lazy(() => import('./pages/Owner/OwnerMeliponarios
 
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return pagina === 'territorio/equipos' || pagina === ADMIN_COVERAGE_ROUTE || pagina === 'campo/asignaciones-tecnicas' || pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
+  return pagina === 'administracion/productos' || pagina === 'territorio/equipos' || pagina === ADMIN_COVERAGE_ROUTE || pagina === 'campo/asignaciones-tecnicas' || pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
     pagina.startsWith("meliponario/")
     ? pagina
     : "explorar";
@@ -112,6 +113,8 @@ export default function App() {
     return <Suspense fallback={<main role="status" className="p-10">Cargando equipos…</main>}>
       <WorkTeamsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/>
     </Suspense>;
+  if (page === 'administracion/productos')
+    return <Suspense fallback={<main role="status" className="p-10">Cargando catálogo.</main>}><AdminProductsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page === ADMIN_COVERAGE_ROUTE)
     return <Suspense fallback={<main role="status" className="p-10">Cargando cobertura territorial.</main>}><AdminCoveragePage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page === 'administracion/asignaciones')
