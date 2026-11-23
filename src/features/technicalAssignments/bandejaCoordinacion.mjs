@@ -27,7 +27,7 @@ export async function bandejaCoordinacion(flujo) {
     const v = porRegistro.get(r.meliponario_id);
     return { id: r.asignacion_id, meliponarioId: r.meliponario_id, nombre: r.nombre_meliponario,
       trabajadorId: r.trabajador_id, trabajadorNombre: nombres.get(r.trabajador_id) || (v?.asignacion_activa_id === r.asignacion_id && v.trabajador_actual) || 'Nombre no disponible',
-      estado: r.estado, vigente: v?.asignacion_activa_id === r.asignacion_id,
+      estado: r.estado, vigente: agenda.status === 'fulfilled' ? v?.asignacion_activa_id === r.asignacion_id : null,
       cancelable: r.estado === 'asignada' && v?.asignacion_activa_id === r.asignacion_id,
       asignadaEn: r.fecha_asignacion, canceladaEn: r.fecha_cancelacion, motivoCancelacion: r.motivo_cancelacion };
   });
@@ -38,6 +38,33 @@ export async function bandejaCoordinacion(flujo) {
     }
   }
   const pending = solicitudes.filter(r => validId(r.meliponario_id) && !porRegistro.get(r.meliponario_id)?.asignacion_activa_id)
-    .map(r => ({ id: r.meliponario_id, meliponarioId: r.meliponario_id, nombre: r.nombre, localidad: r.localidad }));
-  return { pending, assignments, zones: [...zonas.values()], avisos };
+    .map(r => ({ id: r.meliponario_id, meliponarioId: r.meliponario_id, nombre: r.nombre, localidad: r.localidad,
+      meliponario_id: r.meliponario_id, zona_id: r.zona_id, zona_nombre: r.zona_nombre }));
+  return { pending, assignments, zones: [...zonas.values()], avisos, fuentes: {
+    pendientes: pendientes.status === 'fulfilled',
+    asignadas: agenda.status === 'fulfilled',
+    historial: agenda.status === 'fulfilled' && historial.status === 'fulfilled',
+  } };
+}
+
+
+// Una consulta fallida se comunica sin presentar un contador de cero.
+export async function panelCoordinacion(flujo) {
+  const [asignaciones, revision] = await Promise.allSettled([
+    bandejaCoordinacion(flujo), flujo.revisiones(),
+  ]);
+  let revisiones = null;
+  if (revision.status === 'fulfilled' && Array.isArray(revision.value) &&
+      revision.value.every(f => validId(f.visita_tecnica_id) && validId(f.meliponario_id) && typeof f.estado === 'string')) {
+    revisiones = revision.value.map(f => ({ ...f, id: f.visita_tecnica_id, nombre: f.nombre_meliponario || f.nombre || 'Meliponario',
+      trabajadorNombre: f.trabajador_nombre, localidad: f.localidad_nombre || f.localidad }));
+  }
+  if (asignaciones.status === 'rejected' && revisiones === null) {
+    throw new Error('No se pudieron consultar las asignaciones ni las fichas de tu cobertura. Actualiza para volver a intentarlo.');
+  }
+  const data = asignaciones.status === 'fulfilled' ? asignaciones.value : {
+    pending: [], assignments: [], zones: [], fuentes: {}, avisos: ['No se pudieron consultar las asignaciones.'],
+  };
+  return { ...data, revisiones: revisiones || [], fuentes: { ...data.fuentes, revisiones: revisiones !== null },
+    avisos: [...data.avisos, ...(revisiones === null ? ['No se pudo consultar la bandeja de fichas técnicas.'] : [])] };
 }

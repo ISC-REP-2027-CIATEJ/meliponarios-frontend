@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { comprobarConfiguracion, supabase } from '../../lib/supabase';
 import { servicioEquipos } from '../../features/territory/territoryService';
 import { crearFlujoVisitas } from '../../features/technicalAssignments/visitWorkflow.mjs';
@@ -39,7 +39,7 @@ function Contenido({ valor }) {
   return valor === null || valor === '' ? 'Sin dato' : String(valor);
 }
 
-function Asignar({ registro, user, ocupado, ejecutar }) {
+export function Asignar({ registro, user, ocupado, ejecutar }) {
   const [equipo, setEquipo] = useState('');
   const [trabajador, setTrabajador] = useState('');
   const [motivo, setMotivo] = useState('');
@@ -52,11 +52,11 @@ function Asignar({ registro, user, ocupado, ejecutar }) {
   function enviar(e) {
     e.preventDefault();
     const persona = personas.data?.find(p => p.usuario_id === trabajador);
-    if (!persona || !motivo.trim()) return;
+    if (ocupado || !persona || !motivo.trim()) return;
     if (!window.confirm('¿Asignar la primera visita de ' + registro.nombre + ' a ' + [persona.nombre, persona.apellidos].filter(Boolean).join(' ') + '?')) return;
     ejecutar(() => flujo.asignar(registro.meliponario_id, equipo, trabajador, motivo), 'Visita asignada. El trabajador puede actualizar su bandeja en la app.');
   }
-  return <form onSubmit={enviar} className="grid gap-3"><Lectura resultado={equipos}>{grupos => <label>Equipo de {registro.zona_nombre}
+  return <form onSubmit={enviar} className="grid gap-3"><fieldset disabled={ocupado} className="grid gap-3"><Lectura resultado={equipos}>{grupos => <label>Equipo de {registro.zona_nombre}
     <select className="review-field" required value={equipo} onChange={e => { setEquipo(e.target.value); setTrabajador(''); }}>
       <option value="">{grupos.length ? 'Selecciona tu equipo' : 'Sin equipos activos para esta zona'}</option>
       {grupos.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}</select></label>}</Lectura>
@@ -65,10 +65,10 @@ function Asignar({ registro, user, ocupado, ejecutar }) {
         <option value="">{filas.length ? 'Selecciona un trabajador' : 'Sin trabajadores elegibles en este equipo y zona'}</option>
         {filas.map(p => <option key={p.usuario_id} value={p.usuario_id}>{[p.nombre, p.apellidos].filter(Boolean).join(' ')}</option>)}</select></label>}</Lectura>}
     <label>Motivo de la primera visita<textarea required className="review-field" value={motivo} onChange={e => setMotivo(e.target.value)}/></label>
-    <button className={primario} disabled={ocupado || !trabajador || !motivo.trim()}>Confirmar asignación</button></form>;
+    <button className={primario} disabled={ocupado || !trabajador || !motivo.trim()}>Confirmar asignación</button></fieldset></form>;
 }
 
-function Revision({ fila, ocupado, ejecutar }) {
+export function Revision({ fila, ocupado, ejecutar }) {
   const visita = fila.visita_tecnica_id;
   const datos = useLectura(useCallback(() => flujo.detalle(visita), [visita]));
   const [comentario, setComentario] = useState('');
@@ -91,7 +91,7 @@ function Revision({ fila, ocupado, ejecutar }) {
   </div>}</Lectura>;
 }
 
-function Publicacion({ registro }) {
+export function Publicacion({ registro }) {
   const [intento, setIntento] = useState(0);
   const resultado = useLectura(useCallback(() => obtenerFichaPublica(registro.id), [registro]), intento);
   return <section className={panel} aria-label="Resultado público"><h2 className="font-bold">{registro.nombre}</h2>
@@ -101,65 +101,36 @@ function Publicacion({ registro }) {
     <button className={boton} onClick={() => setIntento(n => n + 1)}>Volver a comprobar visibilidad</button></section>;
 }
 
-const bandejas = { pendientes: 'Primera visita por asignar', revisiones: 'Fichas para revisar', propias: 'Mis visitas' };
-const cargarLista = { pendientes: flujo.pendientes, revisiones: flujo.revisiones, propias: flujo.visitasPropias };
-
-export default function VisitWorkflow({ user, coordinator, anteriores }) {
-  const [tab, setTab] = useState(coordinator ? 'pendientes' : 'propias');
-  const [abierta, abrir] = useState(null);
+export default function VisitWorkflow() {
+  const [version, refrescar] = useState(0);
   const [buscar, setBuscar] = useState('');
   const [pagina, setPagina] = useState(0);
-  const [version, refrescar] = useState(0);
-  const [aviso, setAviso] = useState('');
-  const [fallo, setFallo] = useState('');
-  const [publica, setPublica] = useState(null);
-  const [ocupado, setOcupado] = useState(false);
-  const bloqueo = useRef(false);
-  const lista = useLectura(useCallback(() => cargarLista[tab](), [tab]), version);
-  async function ejecutar(operacion, mensaje, comprobar = null) {
-    if (bloqueo.current || fallo) return;
-    bloqueo.current = true; setOcupado(true); setAviso(''); setPublica(null);
-    try {
-      await operacion(); setAviso(mensaje); setPublica(comprobar);
-      abrir(null); refrescar(n => n + 1);
-    } catch (error) {
-      setFallo(error.message + ' Actualiza la bandeja para comprobar el estado antes de reintentar.'); abrir(null);
-    } finally { bloqueo.current = false; setOcupado(false); }
-  }
-  function actualizar() {
-    setFallo(''); abrir(null); setPagina(0); refrescar(n => n + 1);
-  }
+  const resultado = useLectura(flujo.visitasPropias, version);
   return <main className="km-container km-workspace">
-    <header className="km-work-banner km-page-heading"><div><h1 className="km-page-title">{coordinator ? 'Visitas y revisión técnica' : 'Mis visitas de campo'}</h1>
-      <p className="mt-2">{coordinator ? 'Asigna la primera visita y revisa las fichas que envía tu equipo.' : 'Abre la app de campo con esta misma cuenta para capturar o corregir tu ficha.'}</p></div>
-      <button className={boton} disabled={ocupado} onClick={actualizar}>Actualizar bandeja</button></header>
-    <nav className="km-tab-strip km-workspace-bar" aria-label="Bandejas técnicas">
-      {(coordinator ? ['pendientes','revisiones'] : ['propias']).map(t => <button key={t} className={tab === t ? primario : boton} disabled={ocupado}
-        aria-pressed={tab === t} onClick={() => { setTab(t); setBuscar(''); actualizar(); }}>{bandejas[t]}</button>)}
-      <a className={boton} href="#campo/solicitudes">Solicitudes básicas</a>
-      {coordinator && <button className={boton} onClick={anteriores} disabled={ocupado}>Administrar asignaciones existentes</button>}</nav>
-    {aviso && <p role="status" className="km-panel p-4">{aviso}</p>}
-    {fallo && <p role="alert" className="km-panel p-4">{fallo}</p>}
-    {publica && <Publicacion registro={publica}/>}
-    <section className={panel}><h2 className="text-xl font-bold">{bandejas[tab]}</h2>
-    <label>Buscar meliponario<input type="search" className="review-field" value={buscar} onChange={e => { setBuscar(e.target.value); setPagina(0); }}/></label>
-    <Lectura resultado={lista}>{filas => {
-      const encontradas = filas.filter(f => [f.nombre, f.nombre_meliponario, f.localidad, f.localidad_nombre, f.trabajador_nombre].filter(Boolean).join(' ').toLocaleLowerCase('es-MX').includes(buscar.trim().toLocaleLowerCase('es-MX')));
-      const ultima = Math.max(0, Math.ceil(encontradas.length / 12) - 1);
-      const actual = Math.min(pagina, ultima);
-      return <>{!encontradas.length && <p>{buscar ? 'Sin coincidencias.' : 'No hay registros en esta bandeja.'}</p>}
-      {encontradas.slice(actual * 12, actual * 12 + 12).map(f => {
-        const clave = f.visita_tecnica_id || f.asignacion_id || f.meliponario_id;
-        return <article className="km-record-inset grid gap-3 p-5" key={clave}><h3 className="text-lg font-bold">{f.nombre || f.nombre_meliponario}</h3>
-          <p>{[f.zona_nombre, f.localidad || f.localidad_nombre, f.trabajador_nombre, fecha(f.fecha_visita), titulo(f.estado || f.estado_formulario || f.tipo_visita)].filter(Boolean).join(' · ')}</p>
-          {tab === 'propias' && <>{f.motivo_asignacion && <p>{f.motivo_asignacion}</p>}{f.comentario_correccion && <p><strong>Corrección solicitada. </strong>{f.comentario_correccion}</p>}</>}
-          {coordinator && <button className={boton} disabled={ocupado || Boolean(fallo)} aria-expanded={abierta === clave} onClick={() => abrir(abierta === clave ? null : clave)}>
-            {abierta === clave ? 'Cerrar' : tab === 'pendientes' ? 'Elegir equipo y trabajador' : 'Revisar ficha'}</button>}
-          {abierta === clave && tab === 'pendientes' && <Asignar registro={f} user={user} ocupado={ocupado} ejecutar={ejecutar}/>}
-          {abierta === clave && tab === 'revisiones' && <Revision fila={f} ocupado={ocupado} ejecutar={ejecutar}/>}
-        </article>;
-      })}
-      {ultima > 0 && <div className="flex items-center gap-3"><button className={boton} disabled={!actual} onClick={() => setPagina(actual-1)}>Anterior</button>
-        <span>{actual+1} de {ultima+1}</span><button className={boton} disabled={actual === ultima} onClick={() => setPagina(actual+1)}>Siguiente</button></div>}</>;
-    }}</Lectura></section></main>;
+    <header className="km-work-banner km-page-heading"><div>
+      <h1 className="km-page-title">Mis visitas de campo</h1>
+      <p className="mt-2">Abre la app de campo con esta misma cuenta para capturar o corregir tu ficha.</p>
+    </div><button className={boton} onClick={() => { setPagina(0); refrescar(v => v + 1); }}>Actualizar bandeja</button></header>
+    <a className={boton + ' mb-4'} href="#campo/solicitudes">Solicitudes básicas</a>
+    <section className={panel}><h2 className="text-xl font-bold">Meliponarios asignados</h2>
+      <label>Buscar meliponario<input className="review-field" type="search" value={buscar} onChange={e => { setBuscar(e.target.value); setPagina(0); }}/></label>
+      <Lectura resultado={resultado}>{filas => {
+        const encontradas = filas.filter(f => [f.nombre, f.nombre_meliponario, f.localidad, f.localidad_nombre].filter(Boolean).join(' ').toLocaleLowerCase('es-MX').includes(buscar.trim().toLocaleLowerCase('es-MX')));
+        const ultima = Math.max(0, Math.ceil(encontradas.length / 12) - 1);
+        const actual = Math.min(pagina, ultima);
+        return <>{!encontradas.length && <p>{buscar ? 'Sin coincidencias.' : 'No hay visitas asignadas para tu cuenta y cobertura actuales.'}</p>}
+          {encontradas.slice(actual * 12, actual * 12 + 12).map(f => <article className="km-record-inset grid gap-3 p-5" key={f.asignacion_id}>
+            <h3 className="text-lg font-bold">{f.nombre || f.nombre_meliponario}</h3>
+            <p>{[f.zona_nombre, f.localidad || f.localidad_nombre, fecha(f.fecha_visita), titulo(f.estado_formulario || f.tipo_visita)].filter(Boolean).join(' · ')}</p>
+            {f.motivo_asignacion && <p>{f.motivo_asignacion}</p>}
+            {f.comentario_correccion && <p><strong>Corrección solicitada. </strong>{f.comentario_correccion}</p>}
+          </article>)}
+          {ultima > 0 && <div className="flex items-center gap-3">
+            <button className={boton} disabled={!actual} onClick={() => setPagina(actual-1)}>Anterior</button>
+            <span>{actual+1} de {ultima+1}</span><button className={boton} disabled={actual === ultima} onClick={() => setPagina(actual+1)}>Siguiente</button>
+          </div>}
+        </>;
+      }}</Lectura>
+    </section>
+  </main>;
 }
