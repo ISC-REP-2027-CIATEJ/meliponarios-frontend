@@ -132,7 +132,7 @@ export function combinarRegistros({ meliponarios, solicitudes, localidades, abej
       referencia: item.referencia_ubicacion ?? '', vendeMiel: item.ofrece_venta_miel,
       recibeVisitas: item.ofrece_visitas, estado: solicitud?.estado ?? 'sin_solicitud',
       solicitudId: solicitud?.id ?? null, estadoOperativo: item.estado_operativo,
-      visibilidad: item.visibilidad, creadoEn: item.fecha_creacion,
+      telefonoPublico: item.telefono_contacto_publico ?? '', visibilidad: item.visibilidad, creadoEn: item.fecha_creacion,
       actualizadoEn: item.fecha_actualizacion, enviadoEn: solicitud?.fecha_envio ?? null,
       abejas: abejasPorId.get(item.id) ?? [], productos: [],
       coordenadas: punto && Number.isFinite(punto.latitud) && Number.isFinite(punto.longitud) ? [punto.latitud, punto.longitud] : null,
@@ -171,7 +171,7 @@ export function crearApiRegistroSupabase(client) {
     },
     async listar(userId) {
       await autorizar(userId);
-      const meliponarios = await leerTodas(() => client.from('meliponarios').select('id,responsable_principal_id,localidad_id,nombre,descripcion,referencia_ubicacion,ofrece_venta_miel,ofrece_visitas,estado_operativo,visibilidad,fecha_creacion,fecha_actualizacion').eq('responsable_principal_id', userId).order('id'), 'No pudimos recuperar tus meliponarios desde Supabase.');
+      const meliponarios = await leerTodas(() => client.from('meliponarios').select('id,responsable_principal_id,localidad_id,nombre,descripcion,referencia_ubicacion,ofrece_venta_miel,ofrece_visitas,estado_operativo,visibilidad,telefono_contacto_publico,fecha_creacion,fecha_actualizacion').eq('responsable_principal_id', userId).order('id'), 'No pudimos recuperar tus meliponarios desde Supabase.');
       if (!meliponarios.length) return [];
       const ids = meliponarios.map(item => item.id);
       const [solicitudes, localidades, abejas, puntos, ubicaciones] = await Promise.all([

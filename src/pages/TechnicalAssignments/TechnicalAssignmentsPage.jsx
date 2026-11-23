@@ -1,10 +1,11 @@
+import { bandejaCoordinacion } from '../../features/technicalAssignments/bandejaCoordinacion.mjs';
 import VisitWorkflow from './VisitWorkflow';
 import { useEffect, useRef, useState } from 'react';
 import { OwnerHeader } from '../../components/ClientNavigation';
 import { supabase } from '../../lib/supabase';
 import { crearFlujoVisitas } from '../../features/technicalAssignments/visitWorkflow.mjs';
 import {
-  obtenerAsignacionesCoordinador, obtenerMeliponariosAsignados,
+  obtenerMeliponariosAsignados,
   asignarMeliponarioTecnico, cancelarAsignacionTecnica,
 } from '../../features/technicalAssignments/technicalAssignmentsService';
 import '../FieldReviews/FieldReviewsPage.css';
@@ -12,11 +13,9 @@ import '../FieldReviews/FieldReviewsPage.css';
 const visitas = crearFlujoVisitas(supabase);
 const nombreCompleto = persona => [persona?.nombre, persona?.apellidos].filter(Boolean).join(' ') || 'Nombre no disponible';
 async function cargarCoordinador(userId) {
-  const [datos, miembros] = await Promise.allSettled([obtenerAsignacionesCoordinador(userId), visitas.miembros()]);
-  if (datos.status === 'rejected') throw datos.reason;
-  const personas = miembros.status === 'fulfilled' ? miembros.value : [];
-  const nombres = new Map(personas.map(p => [p.usuario_id, nombreCompleto(p)]));
-  return { ...datos.value, assignments: datos.value.assignments.map(a => ({ ...a, trabajadorNombre: nombres.get(a.trabajadorId) || 'Nombre no disponible' })) };
+  const sesion = await supabase.auth.getUser();
+  if (sesion.error || sesion.data?.user?.id !== userId) throw new Error('Vuelve a iniciar sesión con la cuenta coordinadora.');
+  return bandejaCoordinacion(visitas);
 }
 
 const button = 'km-button';
@@ -99,7 +98,7 @@ function Workspace({ user, coordinator }) {
 
   const assignments = coordinator ? data?.assignments || [] : [];
   const rows = coordinator
-    ? tab === 'pendientes' ? data?.pending || [] : assignments.filter(row => tab === 'asignadas' ? row.estado === 'asignada' : row.estado === 'cancelada')
+    ? tab === 'pendientes' ? data?.pending || [] : assignments.filter(row => tab === 'asignadas' ? row.vigente : !row.vigente)
     : data || [];
   const search = query.trim().toLocaleLowerCase('es-MX');
   const filtered = rows.filter(row => [row.nombre, row.localidad, row.municipio, row.trabajadorNombre].filter(Boolean).join(' ').toLocaleLowerCase('es-MX').includes(search));
@@ -124,12 +123,13 @@ function Workspace({ user, coordinator }) {
     {notice && <p role="status" className="mb-5 break-words rounded-2xl bg-soft p-4 text-sm">{notice}</p>}
     {error && <div role="alert" className="mb-5 rounded-2xl bg-[#fff0e5] p-5 text-sm"><p>{error}</p><p className="mt-2">Actualiza para comprobar el resultado antes de intentar otra operación.</p></div>}
     {loading ? <p role="status" className="py-10">Consultando tus asignaciones en Supabase.</p> : data && <>
+      {data.avisos?.map(aviso => <p key={aviso} role="status" className="mb-2">{aviso}</p>)}
       {coordinator && <>
         <section className="mb-6 rounded-2xl bg-soft p-5" aria-label="Zonas del coordinador">
-          <h2 className="text-sm font-bold">Tus zonas activas</h2><p className="mt-2 text-sm">{data.zones.length ? data.zones.map(zone => zone.nombre).join(' · ') : 'No tienes zonas activas asignadas. Solicita al administrador que revise tu cobertura.'}</p>
+          <h2 className="text-sm font-bold">Zonas de los registros consultados</h2><p className="mt-2 text-sm">{data.zones.length ? data.zones.map(zone => zone.nombre).join(' · ') : 'Sin zonas en los registros consultados.'}</p>
         </section>
         <div className="mb-6 grid gap-3 sm:grid-cols-3" aria-label="Bandejas de asignación">
-          {[['pendientes', 'Básicas aprobadas por asignar', data.pending.length], ['asignadas', 'Asignaciones vigentes', assignments.filter(row => row.estado === 'asignada').length], ['historial', 'Asignaciones canceladas', assignments.filter(row => row.estado === 'cancelada').length]].map(([id, label, total]) =>
+          {[['pendientes', 'Básicas aprobadas por asignar', data.pending.length], ['asignadas', 'Asignaciones vigentes', assignments.filter(row => row.vigente).length], ['historial', 'Historial de asignaciones', assignments.filter(row => !row.vigente).length]].map(([id, label, total]) =>
             <button key={id} type="button" disabled={busy} aria-pressed={tab === id} className="km-panel km-queue-filter" onClick={() => { setTab(id); setPage(1); }}>
               <span className="block text-sm">{label}</span><span className="mt-2 block text-3xl font-bold">{total}</span>
             </button>)}
@@ -137,21 +137,21 @@ function Workspace({ user, coordinator }) {
       </>}
       <section className={card} aria-label="Listado de meliponarios">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-          <div><h2 className="text-xl font-bold">{coordinator ? tab === 'pendientes' ? 'Por asignar' : tab === 'asignadas' ? 'Meliponarios con trabajador' : 'Historial de cancelaciones' : 'Tu bandeja de asignaciones'}</h2><p className="mt-2 text-sm text-muted">{filtered.length} registros</p></div>
+          <div><h2 className="text-xl font-bold">{coordinator ? tab === 'pendientes' ? 'Por asignar' : tab === 'asignadas' ? 'Meliponarios con trabajador' : 'Historial de asignaciones' : 'Tu bandeja de asignaciones'}</h2><p className="mt-2 text-sm text-muted">{filtered.length} registros</p></div>
           <div className="w-full sm:w-80"><label className="mb-2 block text-sm font-semibold" htmlFor="technical-search">Buscar meliponario, localidad o trabajador</label>
             <input id="technical-search" className="review-field" type="search" maxLength={160} value={query} onChange={event => { setQuery(event.target.value); setPage(1); }}/></div>
         </div>
         {coordinator && tab === 'pendientes' && <p className="mb-5 rounded-xl bg-soft p-4 text-sm leading-relaxed">Se muestran las aprobaciones más recientes entre las solicitudes consultables. Al asignar se comprobará nuevamente la aprobación vigente y la cobertura del trabajador.</p>}
         <div className="grid gap-4 lg:grid-cols-2">{visible.map(row => <article key={row.id} className="km-record-inset p-5">
-          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-bosque">{coordinator ? tab === 'pendientes' ? 'Aprobación básica' : row.estado === 'asignada' ? 'Asignación vigente' : 'Asignación cancelada' : 'Asignado por coordinación'}</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-bosque">{coordinator ? tab === 'pendientes' ? 'Aprobación básica' : row.vigente ? 'Asignación vigente' : (row.estado || 'Historial').replaceAll('_', ' ') : 'Asignado por coordinación'}</p>
           <h3 className="text-xl font-bold">{row.nombre}</h3>
           {row.localidad && <p className="mt-2 text-sm text-muted">{[row.localidad, row.municipio].filter(Boolean).join(' · ')}</p>}
-          {row.trabajadorId && <p className="mt-2 break-all text-xs text-muted">Trabajador: {row.trabajadorNombre}</p>}
+          {row.trabajadorNombre && <p className="mt-2 break-all text-xs text-muted">Trabajador: {row.trabajadorNombre}</p>}
           {row.asignadaEn && <p className="mt-3 text-sm">Asignación registrada: {formatDate(row.asignadaEn)}</p>}
           {row.motivo && <p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted">{row.motivo}</p>}
           {row.estado === 'cancelada' && <><p className="mt-3 text-sm">Cancelada: {formatDate(row.canceladaEn)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted">{row.motivoCancelacion}</p></>}
           {coordinator && tab === 'pendientes' && <button type="button" className={`${primary} mt-5`} disabled={busy} onClick={() => setOperation({ type: 'asignar', row })}>Asignar trabajador</button>}
-          {coordinator && row.estado === 'asignada' && <div className="mt-5 flex flex-wrap gap-3">
+          {coordinator && row.cancelable && <div className="mt-5 flex flex-wrap gap-3">
             <button type="button" className={button} disabled={busy} onClick={() => setOperation({ type: 'reasignar', row })}>Cambiar trabajador</button>
             <button type="button" className={`${button} !text-[#944c32]`} disabled={busy} onClick={() => setOperation({ type: 'cancelar', row })}>Cancelar asignación</button>
           </div>}

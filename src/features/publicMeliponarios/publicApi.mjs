@@ -24,12 +24,12 @@ export function normalizarFichaPublica(value) {
   if (!uuid(value?.id) || !texto(value?.nombre).trim() ||
       typeof value.ofrece_venta_miel !== 'boolean' || typeof value.ofrece_visitas !== 'boolean' ||
       typeof value.informacion_tecnica_verificada !== 'boolean' ||
-      !texto(value.telefono_contacto).trim() ||
+      (value.telefono_contacto !== null && typeof value.telefono_contacto !== 'string') ||
       ![value.latitud, value.longitud].every(Number.isFinite) || Math.abs(value.latitud) > 90 || Math.abs(value.longitud) > 180) throw invalido();
   return {
     id: uuid(value.id), nombre: value.nombre, descripcion: texto(value.descripcion),
     municipio: texto(value.municipio), localidad: texto(value.localidad),
-    nombreContacto: texto(value.nombre_contacto).trim() || 'Sin nombre de contacto', telefonoContacto: value.telefono_contacto,
+    nombreContacto: texto(value.nombre_contacto).trim() || 'Sin nombre de contacto', telefonoContacto: texto(value.telefono_contacto),
     vendeMiel: value.ofrece_venta_miel, recibeVisitas: value.ofrece_visitas,
     informacionTecnicaVerificada: value.informacion_tecnica_verificada,
     estado: 'Publicado', coordenadas: [value.latitud, value.longitud],
@@ -40,6 +40,11 @@ export function normalizarFichaPublica(value) {
     abejas: [], especies: [], productos: [], especiesDisponibles: false, productosDisponibles: false,
     fuente: 'publico-aprobado',
   };
+}
+
+function publicable(row) {
+  return row.informacion_tecnica_verificada === true && row.estado_operativo !== 'fuera_de_operacion' &&
+    [row.latitud, row.longitud].every(Number.isFinite) && Math.abs(row.latitud) <= 90 && Math.abs(row.longitud) <= 180;
 }
 
 function fallo(error, fotos = false) {
@@ -93,9 +98,13 @@ export function crearApiPublica(client, { origenAlmacenamiento = '' } = {}) {
       let offset = 0;
       for (let page = 0; page < 10000; page++) {
         const data = await pagina(null, offset, offset + 499);
-        if (!data.length) return [...items.values()];
+        if (!data.length) return [...items.values()].filter(Boolean);
         const anteriores = items.size;
-        for (const item of data) { const normal = normalizarFichaPublica(item); items.set(normal.id, normal); }
+        for (const item of data) {
+          const id = uuid(item?.id);
+          if (!id) throw invalido();
+          items.set(id, publicable(item) ? normalizarFichaPublica(item) : null);
+        }
         if (items.size === anteriores) throw invalido();
         // No asumir que Supabase permite 500 filas: la instancia puede aplicar un límite menor.
         offset += data.length;
@@ -108,9 +117,8 @@ export function crearApiPublica(client, { origenAlmacenamiento = '' } = {}) {
       const data = await pagina(id, 0, 1);
       if (!data.length) return null; // Misma respuesta para privado, pendiente o inexistente.
       if (data.length !== 1) throw invalido();
-      const ficha = normalizarFichaPublica(data[0]);
-      if (ficha.id !== id) throw invalido();
-      return ficha;
+      if (uuid(data[0]?.id) !== id) throw invalido();
+      return publicable(data[0]) ? normalizarFichaPublica(data[0]) : null;
     },
     async fotos(encodedId) {
       const id = uuid(encodedId);

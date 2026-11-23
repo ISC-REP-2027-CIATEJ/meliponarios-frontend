@@ -173,7 +173,7 @@ export default function OwnerPhotos({ userId, recordId, bloqueado = false, onAct
     }
   }
 
-  if (!recordId) return <section id="fotografias" className="mb-6 km-panel km-inset"><h2 className="text-xl font-bold">Fotografías</h2><p className="mt-3 text-sm leading-relaxed text-muted">Guarda primero el borrador real. Después podrás añadir y consultar sus fotografías aquí.</p></section>;
+  if (!recordId) return <section id="fotografias" className="mb-6 km-panel km-inset"><h2 className="text-xl font-bold">Fotografías</h2><p className="mt-3 text-sm leading-relaxed text-muted">Guarda primero el borrador. Después podrás añadir y consultar sus fotografías aquí.</p></section>;
 
   const busy = Boolean(operation);
   const free = Math.max(0, MAX_FOTOS - gallery.items.length - pending.length);

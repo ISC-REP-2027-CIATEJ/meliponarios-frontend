@@ -44,6 +44,9 @@ function Fila({ item, abrir, abrirFoto }) {
       <span className="km-home-card-text">
         <strong>{item.nombre}</strong>
         <span className="km-home-place"><Icon name="pin" size={14}/>{[item.localidad, item.municipio].filter(Boolean).join(', ')}</span>
+        {item.descripcion && <span className="line-clamp-2 text-sm text-muted">{item.descripcion}</span>}
+        {item.especies.length > 0 && <span className="text-sm">Abejas · {item.especies.join(', ')}</span>}
+        {item.vendeMiel && item.productos.length > 0 && <span className="text-sm">Productos · {item.productos.join(', ')}</span>}
         <span className="km-home-card-tags">
           <OfertaTag item={item}/>
           {item.informacionTecnicaVerificada && <span className="km-tag"><Icon name="check" size={14}/>Verificado</span>}

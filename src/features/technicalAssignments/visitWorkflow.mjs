@@ -34,6 +34,8 @@ export function crearFlujoVisitas(client) {
   }
 
   return {
+    agenda: () => lista('coord_agenda_visitas_tecnicas', 'meliponario_id'),
+    historial: () => lista('coord_consultar_visitas_tecnicas', 'asignacion_id'),
     miembros: () => lista('coord_mis_grupos_trabajadores', 'grupo_id,usuario_id'),
     async candidatos(registro) {
       const [elegibles, miembros] = await Promise.all([
