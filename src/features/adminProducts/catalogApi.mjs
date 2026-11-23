@@ -6,7 +6,7 @@ const extensiones = { 'image/jpeg': ['jpg','jpeg'], 'image/png': ['png'], 'image
 export function rutaObjeto(valor) {
   const ruta = String(valor ?? '').trim();
   if (!ruta || /[\\?#:]/.test(ruta) || Array.from(ruta).some(c => c.charCodeAt(0) < 32) || ruta.split('/').some(p => !p || p === '.' || p === '..')) {
-    throw new Error('Introduce la ruta del archivo dentro del bucket.');
+    throw new Error('La referencia guardada de la fotografía es inválida.');
   }
   return ruta;
 }
@@ -20,7 +20,7 @@ async function tipoReal(blob) {
   return null;
 }
 
-export async function prepararImagen(archivo, config, uuid, rutaNueva = '') {
+export async function prepararImagen(archivo, config, uuid) {
   const posibles = extensiones[archivo?.type];
   const permitidos = config.tipos;
   if (!posibles || (permitidos?.length && ![archivo.type,'image/*','*/*'].some(tipo => permitidos.includes(tipo)))) {
@@ -30,20 +30,14 @@ export async function prepararImagen(archivo, config, uuid, rutaNueva = '') {
   if (await tipoReal(archivo) !== archivo.type) throw new Error('El contenido del archivo no corresponde al formato seleccionado.');
   const ext = posibles.find(e => !config.extensiones?.length || config.extensiones.includes(e));
   if (!ext) throw new Error('Esta extensión no está permitida por la regla de rutas.');
-  if (!config.plantilla?.includes('{uuid}') || !config.plantilla.includes('{ext}')) {
-    const manual = rutaObjeto(rutaNueva);
-    const final = manual.split('.').pop().toLowerCase();
-    if (!posibles.includes(final) || (config.extensiones?.length && !config.extensiones.includes(final))) {
-      throw new Error('La extensión de la ruta debe coincidir con el tipo de la fotografía.');
-    }
-    return manual;
-  }
-  return rutaObjeto(config.plantilla.replaceAll('{uuid}', uuid()).replaceAll('{ext}', ext));
+  const identificador = uuid();
+  if (!validId(identificador)) throw new Error('No se pudo preparar la fotografía. Vuelve a seleccionarla.');
+  return 'catalogo/' + identificador + '.' + ext;
 }
 
 export function crearCatalogo(client, config, uuid = () => crypto.randomUUID()) {
   function storage() {
-    if (!config.bucket) throw new Error('Primero configura el bucket del catálogo con el paso 2 del Léeme.');
+    if (!config.bucket) throw new Error('El almacén de fotografías del catálogo aún no está configurado.');
     return client.storage.from(config.bucket);
   }
 
@@ -90,7 +84,7 @@ export function crearCatalogo(client, config, uuid = () => crypto.randomUUID()) 
         productos.push(...data);
       }
     },
-    async guardar(userId, producto, { nombre, descripcion, archivo, rutaExistente, rutaNueva }) {
+    async guardar(userId, producto, { nombre, descripcion, archivo }) {
       const nombreFinal = nombre.trim();
       if (!nombreFinal) throw new Error('Escribe el nombre del producto.');
       await admin(userId);
@@ -99,16 +93,13 @@ export function crearCatalogo(client, config, uuid = () => crypto.randomUUID()) 
       let subida = false;
       if (archivo) {
         const bucket = storage();
-        ruta = await prepararImagen(archivo, config, uuid, rutaNueva);
+        ruta = await prepararImagen(archivo, config, uuid);
         let carga;
         try { carga = await bucket.upload(ruta, archivo, { upsert: false, contentType: archivo.type }); }
-        catch { throw new Error('Carga sin confirmar. Comprueba la ruta en Storage antes de repetir: ' + ruta); }
+        catch { throw new Error('No se confirmó la carga de la fotografía. Revisa tu conexión y vuelve a intentarlo.'); }
         const { error } = carga;
-        if (error) throw new Error('No se confirmó la carga de la fotografía. Revisa el almacén y la ruta. ' + error.message);
+        if (error) throw new Error('No se pudo subir la fotografía. Revisa tu conexión y los permisos del catálogo.');
         subida = true;
-      } else if (rutaExistente) {
-        ruta = rutaObjeto(rutaExistente);
-        if (!await tipoReal(await foto(ruta))) throw new Error('El archivo guardado debe ser una fotografía JPEG, PNG o WebP.');
       }
       if (!ruta) throw new Error('Selecciona la fotografía del producto.');
       const valores = { p_nombre: nombreFinal, p_descripcion: descripcion.trim() || null, p_imagen_storage: ruta };
@@ -122,11 +113,11 @@ export function crearCatalogo(client, config, uuid = () => crypto.randomUUID()) 
       if (error?.code && /^(22|23|42501$|P0001$|PGRST20[23]$)/.test(error.code)) {
         if (subida) {
           const retirada = await storage().remove([ruta]).catch(() => ({ error: true }));
-          if (retirada.error || !retirada.data?.length) throw new Error('El producto no se guardó y quedó una imagen pendiente de revisar en Storage: ' + ruta + '. ' + error.message);
+          if (retirada.error || !retirada.data?.length) throw new Error('El producto no se guardó y quedó una fotografía pendiente de revisión.');
         }
-        throw new Error(error.message);
+        throw new Error('El servidor rechazó los datos del producto. Revisa el nombre y la fotografía.');
       }
-      const incierto = new Error('No se pudo confirmar el guardado. Actualiza y busca el producto antes de repetir. La imagen se conservó en ' + ruta + '.');
+      const incierto = new Error('No se pudo confirmar el guardado. Cierra el formulario y actualiza el catálogo antes de repetir.');
       incierto.incierto = true;
       throw incierto;
     },

@@ -31,32 +31,6 @@ function Fecha({ valor, alternativa }) {
     : alternativa;
 }
 
-function IdentificadorCuenta({ id }) {
-  const [aviso, setAviso] = useState('');
-  const control = useRef(null);
-
-  async function copiar() {
-    try {
-      await navigator.clipboard.writeText(id);
-      setAviso('Identificador copiado.');
-    } catch {
-      control.current?.focus();
-      control.current?.select();
-      setAviso('Copia el identificador con Ctrl+C.');
-    }
-  }
-
-  return <div className="za-identity">
-    <label>
-      <span>Identificador de cuenta</span>
-      <input className="za-control za-id" ref={control} value={id} readOnly
-        onFocus={event => event.target.select()}/>
-    </label>
-    <button className="za-button za-button--soft" type="button" onClick={copiar}>Copiar ID</button>
-    {aviso && <p className="za-copy-notice" role="status">{aviso}</p>}
-  </div>;
-}
-
 export default function AdminAssignmentsPage({ user, sessionReady, onLogout }) {
   return <div className="za-page km-with-nav">
     <OwnerHeader user={user} sessionReady={sessionReady} onLogout={onLogout}/>
@@ -256,7 +230,6 @@ function Workspace({ userId }) {
               </option>)}
             </select>
           </div>
-          {usuario && <IdentificadorCuenta key={usuario.id} id={usuario.id}/>}
           <div className="za-field">
             <label htmlFor="assignment-zone">Zona</label>
             <select id="assignment-zone" className="za-control" value={zona?.id ?? ''}
@@ -383,7 +356,6 @@ function TarjetaPersona({ persona, estado, editando, pedirFinalizacion }) {
           : totalVigentes === 1 ? 'Asignación vigente' : 'Sin asignación vigente'}
       </span>}
     </header>
-    <IdentificadorCuenta id={persona.id}/>
     {estado !== 'historial' && totalVigentes > 0 && <div className="za-terms">
       {persona.vigentes.map(periodo => <PeriodoZona key={periodo.id} periodo={periodo}
         editando={editando} alFinalizar={() => pedirFinalizacion(persona, periodo)}/>)}

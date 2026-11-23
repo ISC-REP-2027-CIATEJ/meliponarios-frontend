@@ -1,12 +1,23 @@
 import VisitWorkflow from './VisitWorkflow';
 import { useEffect, useRef, useState } from 'react';
 import { OwnerHeader } from '../../components/ClientNavigation';
-import { validId } from '../../features/territory/territoryApi.mjs';
+import { supabase } from '../../lib/supabase';
+import { crearFlujoVisitas } from '../../features/technicalAssignments/visitWorkflow.mjs';
 import {
   obtenerAsignacionesCoordinador, obtenerMeliponariosAsignados,
   asignarMeliponarioTecnico, cancelarAsignacionTecnica,
 } from '../../features/technicalAssignments/technicalAssignmentsService';
 import '../FieldReviews/FieldReviewsPage.css';
+
+const visitas = crearFlujoVisitas(supabase);
+const nombreCompleto = persona => [persona?.nombre, persona?.apellidos].filter(Boolean).join(' ') || 'Nombre no disponible';
+async function cargarCoordinador(userId) {
+  const [datos, miembros] = await Promise.allSettled([obtenerAsignacionesCoordinador(userId), visitas.miembros()]);
+  if (datos.status === 'rejected') throw datos.reason;
+  const personas = miembros.status === 'fulfilled' ? miembros.value : [];
+  const nombres = new Map(personas.map(p => [p.usuario_id, nombreCompleto(p)]));
+  return { ...datos.value, assignments: datos.value.assignments.map(a => ({ ...a, trabajadorNombre: nombres.get(a.trabajadorId) || 'Nombre no disponible' })) };
+}
 
 const button = 'km-button';
 const primary = 'km-button km-button--primary';
@@ -53,7 +64,7 @@ function Workspace({ user, coordinator }) {
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
   useEffect(() => {
     let active = true;
-    const read = coordinator ? obtenerAsignacionesCoordinador : obtenerMeliponariosAsignados;
+    const read = coordinator ? cargarCoordinador : obtenerMeliponariosAsignados;
     read(user.id).then(value => { if (active) { setData(value); setError(''); } })
       .catch(failure => { if (active) { setData(null); setOperation(null); setError(failure.message); } })
       .finally(() => { if (active) setLoading(false); });
@@ -69,15 +80,17 @@ function Workspace({ user, coordinator }) {
     if (lock.current || !operation || !data) return;
     lock.current = true; setBusy(true); setError(''); setNotice('');
     try {
-      const id = operation.type === 'cancelar'
-        ? await cancelarAsignacionTecnica(user.id, { asignacionId: operation.row.id, motivo: values.motivo })
-        : await asignarMeliponarioTecnico(user.id, {
+      if (operation.type === 'cancelar') {
+        await cancelarAsignacionTecnica(user.id, { asignacionId: operation.row.id, motivo: values.motivo });
+      } else {
+        await asignarMeliponarioTecnico(user.id, {
           meliponarioId: operation.row.meliponarioId, trabajadorId: values.trabajadorId, motivo: values.motivo,
         });
+      }
       if (!live.current) return;
       setNotice(operation.type === 'cancelar'
-        ? `Cancelación confirmada. Se conserva el historial de la asignación ${id}.`
-        : `Asignación confirmada en Supabase: ${id}. Actualizando los registros.`);
+        ? 'Cancelación confirmada. Se conserva el historial.'
+        : 'Asignación confirmada. Actualizando los registros.');
       setOperation(null); setData(null); setLoading(true); setRevision(value => value + 1);
     } catch (failure) {
       if (live.current) { setError(failure.message); setOperation(null); setData(null); }
@@ -89,7 +102,7 @@ function Workspace({ user, coordinator }) {
     ? tab === 'pendientes' ? data?.pending || [] : assignments.filter(row => tab === 'asignadas' ? row.estado === 'asignada' : row.estado === 'cancelada')
     : data || [];
   const search = query.trim().toLocaleLowerCase('es-MX');
-  const filtered = rows.filter(row => [row.nombre, row.localidad, row.municipio, row.meliponarioId, row.trabajadorId].filter(Boolean).join(' ').toLocaleLowerCase('es-MX').includes(search));
+  const filtered = rows.filter(row => [row.nombre, row.localidad, row.municipio, row.trabajadorNombre].filter(Boolean).join(' ').toLocaleLowerCase('es-MX').includes(search));
   const pages = Math.max(1, Math.ceil(filtered.length / 20));
   const currentPage = Math.min(page, pages);
   const visible = filtered.slice((currentPage - 1) * 20, currentPage * 20);
@@ -125,7 +138,7 @@ function Workspace({ user, coordinator }) {
       <section className={card} aria-label="Listado de meliponarios">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
           <div><h2 className="text-xl font-bold">{coordinator ? tab === 'pendientes' ? 'Por asignar' : tab === 'asignadas' ? 'Meliponarios con trabajador' : 'Historial de cancelaciones' : 'Tu bandeja de asignaciones'}</h2><p className="mt-2 text-sm text-muted">{filtered.length} registros</p></div>
-          <div className="w-full sm:w-80"><label className="mb-2 block text-sm font-semibold" htmlFor="technical-search">Buscar nombre, localidad o identificador</label>
+          <div className="w-full sm:w-80"><label className="mb-2 block text-sm font-semibold" htmlFor="technical-search">Buscar meliponario, localidad o trabajador</label>
             <input id="technical-search" className="review-field" type="search" maxLength={160} value={query} onChange={event => { setQuery(event.target.value); setPage(1); }}/></div>
         </div>
         {coordinator && tab === 'pendientes' && <p className="mb-5 rounded-xl bg-soft p-4 text-sm leading-relaxed">Se muestran las aprobaciones más recientes entre las solicitudes consultables. Al asignar se comprobará nuevamente la aprobación vigente y la cobertura del trabajador.</p>}
@@ -133,8 +146,7 @@ function Workspace({ user, coordinator }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-wide text-bosque">{coordinator ? tab === 'pendientes' ? 'Aprobación básica' : row.estado === 'asignada' ? 'Asignación vigente' : 'Asignación cancelada' : 'Asignado por coordinación'}</p>
           <h3 className="text-xl font-bold">{row.nombre}</h3>
           {row.localidad && <p className="mt-2 text-sm text-muted">{[row.localidad, row.municipio].filter(Boolean).join(' · ')}</p>}
-          <p className="mt-3 break-all text-xs text-muted">Meliponario: {row.meliponarioId}</p>
-          {row.trabajadorId && <p className="mt-2 break-all text-xs text-muted">Trabajador: {row.trabajadorId}</p>}
+          {row.trabajadorId && <p className="mt-2 break-all text-xs text-muted">Trabajador: {row.trabajadorNombre}</p>}
           {row.asignadaEn && <p className="mt-3 text-sm">Asignación registrada: {formatDate(row.asignadaEn)}</p>}
           {row.motivo && <p className="mt-3 whitespace-pre-wrap break-words text-sm text-muted">{row.motivo}</p>}
           {row.estado === 'cancelada' && <><p className="mt-3 text-sm">Cancelada: {formatDate(row.canceladaEn)}</p><p className="mt-2 whitespace-pre-wrap break-words text-sm text-muted">{row.motivoCancelacion}</p></>}
@@ -173,12 +185,23 @@ function OperationDialog({ operation, busy, onCancel, onConfirm }) {
     const element = dialog.current; element.showModal();
     return () => { if (element.open) element.close(); };
   }, []);
+  const [personas, setPersonas] = useState(null);
+  useEffect(() => {
+    if (cancel) return;
+    let active = true;
+    visitas.candidatos(operation.row.meliponarioId)
+      .then(rows => { if (active) setPersonas(rows.filter(p => p.usuario_id !== operation.row.trabajadorId)
+        .sort((a, b) => nombreCompleto(a).localeCompare(nombreCompleto(b), 'es-MX'))); })
+      .catch(() => { if (active) { setPersonas([]); setError('No pudimos cargar los trabajadores elegibles. Cierra y vuelve a abrir la selección.'); } });
+    return () => { active = false; };
+  }, [cancel, operation.row.meliponarioId, operation.row.trabajadorId]);
+  const elegido = personas?.find(p => p.usuario_id === worker);
   function submit(event) {
     event.preventDefault();
     if (busy) return;
     const workerId = worker.trim();
     const size = Array.from(reason.trim()).length;
-    if (!cancel && !validId(workerId)) { setError('Copia el identificador completo del trabajador proporcionado por el administrador.'); return; }
+    if (!cancel && !elegido) { setError('Elige un trabajador de tu equipo disponible para esta visita.'); return; }
     if (!cancel && workerId.toLowerCase() === operation.row.trabajadorId?.toLowerCase()) { setError('Selecciona un trabajador diferente al asignado actualmente.'); return; }
     if (size < 10 || size > 1000) { setError('Escribe un motivo de 10 a 1000 caracteres.'); return; }
     setError('');
@@ -189,18 +212,22 @@ function OperationDialog({ operation, busy, onCancel, onConfirm }) {
     <form onSubmit={submit}>
       <p className="mb-3 text-xs font-bold uppercase tracking-widest text-bosque">Coordinación de campo</p>
       <h2 id="technical-operation-title" className="text-2xl font-extrabold">{title}</h2>
-      <p className="mt-4 text-lg font-bold">{operation.row.nombre}</p><p className="mt-2 break-all text-xs text-muted">{operation.row.meliponarioId}</p>
+      <p className="mt-4 text-lg font-bold">{operation.row.nombre}</p>
       {!preview ? <>
-        {!cancel && <div className="mt-5"><label className="mb-2 block text-sm font-semibold" htmlFor="technical-worker">Identificador del trabajador</label>
-          <input autoFocus id="technical-worker" className="review-field" value={worker} maxLength={36} disabled={busy} onChange={event => setWorker(event.target.value)} required autoComplete="off" spellCheck={false} aria-describedby="technical-worker-help"/>
-          <p id="technical-worker-help" className="mt-2 text-xs leading-relaxed text-muted">Pide al administrador el identificador de un trabajador de esta zona. La cuenta debe estar activa y tener cobertura vigente.</p>
+        {!cancel && <div className="mt-5"><label className="mb-2 block text-sm font-semibold" htmlFor="technical-worker">Trabajador de campo</label>
+          <select autoFocus id="technical-worker" className="review-field" value={worker} required disabled={busy || !personas?.length} onChange={e => setWorker(e.target.value)}>
+            <option value="">{!personas ? 'Consultando trabajadores…' : personas.length ? 'Elige por nombre' : 'Sin trabajadores elegibles'}</option>
+            {personas?.map(p => <option key={p.usuario_id} value={p.usuario_id}>{nombreCompleto(p)}</option>)}</select>
+          {personas?.length === 0 && !error && <p className="mt-2 text-sm text-muted">{operation.type === 'reasignar'
+            ? 'No hay otro trabajador disponible en tu equipo para este meliponario.'
+            : 'Revisa la cobertura de la zona y la pertenencia al equipo.'}</p>}
         </div>}
         <div className="mt-5"><label className="mb-2 block text-sm font-semibold" htmlFor="technical-reason">Motivo (obligatorio)</label>
           <textarea autoFocus={cancel} id="technical-reason" className="review-field" value={reason} minLength={10} maxLength={1000} disabled={busy} onChange={event => setReason(event.target.value)} required aria-describedby="technical-reason-help"/>
           <p id="technical-reason-help" className="mt-2 text-xs text-muted">De 10 a 1000 caracteres. Se conserva como parte de la asignación.</p>
         </div>
       </> : <div className="mt-5 rounded-2xl bg-soft p-4 text-sm leading-relaxed">
-        {!cancel && <p className="break-all"><strong>Trabajador:</strong> {worker.trim()}</p>}
+        {!cancel && <p className="break-all"><strong>Trabajador:</strong> {nombreCompleto(elegido)}</p>}
         <p className="mt-3 whitespace-pre-wrap break-words"><strong>Motivo:</strong> {reason.trim()}</p>
         <p className="mt-4">{cancel ? 'Se cancelará esta asignación. El registro se conservará en el historial.' : operation.type === 'reasignar' ? 'Supabase cancelará la asignación vigente y registrará al nuevo trabajador en una sola operación.' : 'Se registrará la asignación. El trabajador podrá consultarla al actualizar su bandeja.'}</p>
         {!cancel && operation.type !== 'reasignar' && <p className="mt-3">Si otro coordinador ya asignó este meliponario, al confirmar se sustituirá esa asignación por la indicada aquí.</p>}
@@ -210,7 +237,7 @@ function OperationDialog({ operation, busy, onCancel, onConfirm }) {
       <div className="mt-6 flex flex-wrap justify-end gap-3">
         <button type="button" className={button} disabled={busy} onClick={onCancel}>Cerrar</button>
         {preview && <button type="button" className={button} disabled={busy} onClick={() => setPreview(false)}>Editar datos</button>}
-        <button type="submit" className={primary} disabled={busy}>{busy ? 'Guardando…' : preview ? 'Confirmar operación' : 'Revisar antes de guardar'}</button>
+        <button type="submit" className={primary} disabled={busy || (!cancel && !elegido)}>{busy ? 'Guardando…' : preview ? 'Confirmar operación' : 'Revisar antes de guardar'}</button>
       </div>
     </form>
   </dialog>;

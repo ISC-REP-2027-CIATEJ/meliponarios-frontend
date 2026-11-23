@@ -127,7 +127,7 @@ export function createTechnicalAssignmentsApi(client) {
 
     async assign(userId, { meliponarioId, trabajadorId, motivo }) {
       if (![meliponarioId, trabajadorId].every(validId) || length(motivo) < 10 || length(motivo) > 1000) {
-        throw new TerritoryError('Indica un meliponario, un identificador de trabajador válido y un motivo de 10 a 1000 caracteres.', 'INVALID_INPUT');
+        throw new TerritoryError('Indica un meliponario, un trabajador de la lista y un motivo de 10 a 1000 caracteres.', 'INVALID_INPUT');
       }
       await authorize(userId, 3);
       return rpc('coord_asignar_visita_tecnica', { p_meliponario_id: meliponarioId, p_trabajador_id: trabajadorId, p_motivo: motivo.trim() }, true);

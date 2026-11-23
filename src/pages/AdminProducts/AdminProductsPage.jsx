@@ -36,31 +36,19 @@ function Foto({ ruta, archivo, nombre }) {
 function Editor({ producto, ocupado, error, bloqueado, cerrar, guardar }) {
   const [nombre, setNombre] = useState(producto?.nombre || '');
   const [descripcion, setDescripcion] = useState(producto?.descripcion || '');
-  const [modo, setModo] = useState(producto ? 'actual' : 'archivo');
   const [archivo, setArchivo] = useState(null);
-  const [ruta, setRuta] = useState('');
-  const [destino, setDestino] = useState('');
-  const puedeGuardar = nombre.trim() && (modo === 'actual' ||
-    (almacenProductos.bucket && (modo === 'archivo' ? archivo && (almacenProductos.plantilla || destino.trim()) : ruta.trim())));
+  const puedeGuardar = nombre.trim() && (archivo || producto?.imagen_storage);
   return <DialogoCobertura tituloId="cp-editor-titulo" cancelar={cerrar}>
-    <form className="cp-form" onSubmit={e => { e.preventDefault(); if (puedeGuardar) guardar({ nombre, descripcion,
-      archivo: modo === 'archivo' ? archivo : null, rutaNueva: destino, rutaExistente: modo === 'ruta' ? ruta : '' }); }}>
+    <form className="cp-form" onSubmit={e => { e.preventDefault(); if (puedeGuardar) guardar({ nombre, descripcion, archivo }); }}>
       <h2 id="cp-editor-titulo">{producto ? 'Editar producto' : 'Crear producto'}</h2>
       <fieldset disabled={ocupado || bloqueado}><label>Nombre del producto<input autoFocus required value={nombre} onChange={e => setNombre(e.target.value)}/></label>
         <label>Descripción <small>(opcional)</small><textarea rows={3} value={descripcion} onChange={e => setDescripcion(e.target.value)}/></label>
-        <label>Fotografía<select value={modo} onChange={e => setModo(e.target.value)}>
-          {producto && <option value="actual">Conservar fotografía actual</option>}
-          <option value="archivo">Subir desde mi dispositivo</option>
-          <option value="ruta">Elegir mediante ruta de un archivo ya guardado</option>
-        </select></label>
-        {modo === 'archivo' && <label>Archivo de imagen<input type="file" required accept="image/jpeg,image/png,image/webp" onChange={e => setArchivo(e.target.files?.[0] || null)}/></label>}
-        {modo === 'archivo' && !almacenProductos.plantilla && almacenProductos.bucket && <label>Ruta nueva de destino
-          <input required value={destino} onChange={e => setDestino(e.target.value)} spellCheck={false}/>
-          <small>Usa una ruta libre con el formato indicado por el backend.</small></label>}
-        {modo === 'ruta' && <label>Ruta dentro del bucket<input required autoComplete="off" spellCheck={false} value={ruta} onChange={e => setRuta(e.target.value)}/>
-          <small>Copia la ruta de una fotografía existente en Storage. Se comprobará al guardar.</small></label>}
-        {modo !== 'ruta' && <Foto ruta={modo === 'actual' ? producto?.imagen_storage : null} archivo={modo === 'archivo' ? archivo : null} nombre={nombre}/>}
-        {!almacenProductos.bucket && modo !== 'actual' && <p>Completa el paso 2 del Léeme para habilitar las imágenes.</p>}
+        <label>{producto ? 'Reemplazar fotografía (opcional)' : 'Fotografía del producto'}
+          <input type="file" required={!producto} accept="image/jpeg,image/png,image/webp"
+            onChange={e => setArchivo(e.target.files?.[0] || null)}/>
+        </label>
+        {producto && <small>Si guardas sin elegir una imagen, se conserva la fotografía actual.</small>}
+        <Foto ruta={producto?.imagen_storage} archivo={archivo} nombre={nombre}/>
       </fieldset>
       {error && <p role="alert" className="cp-error">{error}</p>}
       <div className="cp-acciones"><button type="button" className={boton} disabled={ocupado} onClick={cerrar}>Cerrar</button>
