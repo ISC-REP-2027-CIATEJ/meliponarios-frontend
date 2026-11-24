@@ -142,7 +142,7 @@ test('la búsqueda usa nombre, municipio y localidad; los filtros sin datos púb
   assert.equal(filtrarPublicos([item], { busqueda: 'localidad autorizada' }).length, 1);
   assert.equal(filtrarPublicos([item], { municipio: 'Valladolid', especie: 'filtro antiguo', conProductos: true }).length, 1);
   assert.equal(filtrarPublicos([item], { activos: true }).length, 0);
-  assert.equal(filtrarPublicos([{ ...item, informacionTecnicaVerificada: true }], { activos: true }).length, 1);
+  assert.equal(filtrarPublicos([{ ...item, estadoOperativo: 'activo', informacionTecnicaVerificada: true }], { activos: true }).length, 1);
   assert.equal(filtrarPublicos([item], { municipio: 'Izamal' }).length, 0);
 });
 

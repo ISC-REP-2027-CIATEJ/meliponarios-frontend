@@ -1,3 +1,4 @@
+import EstadoOperativoTag from '../../features/publicMeliponarios/EstadoOperativoTag';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { OwnerHeader } from '../../components/ClientNavigation';
 import { filtrosIniciales } from '../../data/filtros';
@@ -25,7 +26,7 @@ function ResultadoMapa({ item, seleccionado, ubicacion, elegir }) {
       <span className="km-map-result-text">
         <strong>{item.nombre}</strong><span>{lugar}</span>
         <span className="km-map-result-tags">
-          <OfertaTag item={item}/>
+          <OfertaTag item={item}/><EstadoOperativoTag item={item}/>
           {item.privadoDemo && <span className="km-tag">Solo tú</span>}
           {ubicacion && <span>≈ {distanciaKm(ubicacion.coordenadas, item.coordenadas).toLocaleString('es-MX', { maximumFractionDigits: 1 })} km</span>}
         </span>
@@ -174,7 +175,7 @@ export default function MapPage({ filtros, onFiltrosChange, onExplore, onLogin, 
                 </button>
                 <div><h3>{seleccionado.nombre}</h3>
                   <p className="text-sm text-muted">{[seleccionado.localidad, seleccionado.municipio].filter(Boolean).join(', ')}</p>
-                  <div className="mt-1 flex flex-wrap gap-1"><OfertaTag item={seleccionado}/>{seleccionado.privadoDemo && <span className="km-tag">Solo tú · {seleccionado.etiquetaPrivada}</span>}</div>
+                  <div className="mt-1 flex flex-wrap gap-1"><OfertaTag item={seleccionado}/><EstadoOperativoTag item={seleccionado}/>{seleccionado.privadoDemo && <span className="km-tag">Solo tú · {seleccionado.etiquetaPrivada}</span>}</div>
                 </div>
                 <button type="button" className={control + ' km-button--quiet'} aria-label="Cerrar selección" onClick={() => setSeleccionId(null)}><Icon name="close" size={18}/></button>
               </div>
