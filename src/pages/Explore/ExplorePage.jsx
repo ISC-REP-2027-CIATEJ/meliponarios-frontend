@@ -1,3 +1,4 @@
+import EstadoOperativoTag from '../../features/publicMeliponarios/EstadoOperativoTag';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ClientRegistrationButton, OwnerHeader } from '../../components/ClientNavigation';
 import { filtrosIniciales } from '../../data/filtros';
@@ -30,7 +31,7 @@ function ConFoto({ item, abrir }) {
   if (!foto) return null;
   return <button type="button" className="km-feature-card" onClick={() => abrir(item)}>
     <img src={foto.url} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFallidas(previous => [...previous, foto.url])}/>
-    <span className="km-feature-card-tag"><OfertaTag item={item}/></span>
+    <span className="km-feature-card-tag"><OfertaTag item={item}/><EstadoOperativoTag item={item}/></span>
     <span className="km-feature-card-title"><strong>{item.nombre}</strong><span><Icon name="pin" size={15}/>{[item.localidad, item.municipio].filter(Boolean).join(', ')}</span></span>
   </button>;
 }
@@ -48,7 +49,7 @@ function Fila({ item, abrir, abrirFoto }) {
         {item.especies.length > 0 && <span className="text-sm">Abejas · {item.especies.join(', ')}</span>}
         {item.vendeMiel && item.productos.length > 0 && <span className="text-sm">Productos · {item.productos.join(', ')}</span>}
         <span className="km-home-card-tags">
-          <OfertaTag item={item}/>
+          <OfertaTag item={item}/><EstadoOperativoTag item={item}/>
           {item.informacionTecnicaVerificada && <span className="km-tag"><Icon name="check" size={14}/>Verificado</span>}
         </span>
       </span>

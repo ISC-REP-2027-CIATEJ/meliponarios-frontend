@@ -1,3 +1,4 @@
+import EstadoOperativoTag from '../../features/publicMeliponarios/EstadoOperativoTag';
 import { useEffect, useRef, useState } from 'react';
 import { OwnerHeader } from '../../components/ClientNavigation';
 import { OfertaTag } from '../../features/publicMeliponarios/PublicBrowseControls';
@@ -49,7 +50,7 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
             <div>
               <h1 className="km-page-title">{sitio.nombre}</h1>
               <p className="flex items-center gap-2 text-muted"><Icon name="pin" size={18}/>{[sitio.localidad, sitio.municipio, 'Yucatán'].filter(Boolean).join(', ')}</p>
-              <div className="mt-3 flex flex-wrap gap-2"><OfertaTag item={sitio}/><span className="km-tag"><Icon name="check" size={15}/>{sitio.informacionTecnicaVerificada ? 'Verificación técnica' : 'Información básica aprobada'}</span></div>
+              <div className="mt-3 flex flex-wrap gap-2"><OfertaTag item={sitio}/><EstadoOperativoTag item={sitio}/><span className="km-tag"><Icon name="check" size={15}/>{sitio.informacionTecnicaVerificada ? 'Verificación técnica' : 'Información básica aprobada'}</span></div>
             </div>
             <div><button type="button" className={boton} onClick={compartir}>Copiar enlace</button>{compartido && <p role="status" className="mt-2 text-sm text-muted">{compartido}</p>}</div>
           </header>

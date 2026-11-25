@@ -1,3 +1,4 @@
+import EstadoOperativo from './EstadoOperativo';
 import TelefonoGuardado from './TelefonoGuardado';
 import { normalizarTelefonoPublico, guardarTelefonoPublico } from '../../features/ownerMeliponarios/telefonoPublico.mjs';
 import { supabase } from '../../lib/supabase';
@@ -75,6 +76,9 @@ function RemoteWorkspace({ route, user }) {
     }
     return saved;
   }
+  function estadoGuardado(id, estadoOperativo) {
+    setData(previous => ({ ...previous, records: previous.records.map(item => item.id === id ? { ...item, estadoOperativo } : item) }));
+  }
   function telefonoGuardado(id, telefonoPublico) {
     setData(previous => ({ ...previous, records: previous.records.map(item => item.id === id ? { ...item, telefonoPublico } : item) }));
   }
@@ -84,7 +88,7 @@ function RemoteWorkspace({ route, user }) {
   return <main className="km-container km-workspace">
     {message && <p role="status" className="mb-5 rounded-2xl bg-soft p-4 text-sm font-semibold">{message}</p>}
     {data.error && <div role="alert" className="mb-6 rounded-2xl border border-solid border-[#e4b59f] bg-[#fff3ed] p-5"><h1 className="text-xl font-bold">No pudimos actualizar desde Supabase</h1><p className="my-4">{data.error}</p><button type="button" className={secondary} onClick={refresh}>Volver a cargar</button><p className="mt-3 text-xs">Tus registros se conservan en tu cuenta. Puedes volver a intentar la consulta.</p></div>}
-    {data.loading ? <p role="status" className="py-12 text-center">Consultando tu cuenta y tus registros en Supabase…</p> : data.catalog && (route === 'mis-meliponarios' ? <OwnerList remote records={data.records} catalog={data.catalog} onRefresh={refresh}/> : route.startsWith('mi-meliponario/') && !record ? <div className="rounded-3xl bg-white p-10 text-center"><h1 className="text-2xl font-bold">No encontramos este registro en tu cuenta</h1><p className="my-5">Comprueba que estés usando la cuenta propietaria del meliponario.</p><a href="#mis-meliponarios" className={secondary}>Mis meliponarios</a></div> : <OwnerForm key={record?.id || 'nuevo'} remote onSubmitted={refresh} onTelefonoGuardado={telefonoGuardado} userId={user.id} record={record} catalog={data.catalog} onSave={save} storageBlocked={false}/>)}
+    {data.loading ? <p role="status" className="py-12 text-center">Consultando tu cuenta y tus registros en Supabase…</p> : data.catalog && (route === 'mis-meliponarios' ? <OwnerList remote records={data.records} catalog={data.catalog} onRefresh={refresh}/> : route.startsWith('mi-meliponario/') && !record ? <div className="rounded-3xl bg-white p-10 text-center"><h1 className="text-2xl font-bold">No encontramos este registro en tu cuenta</h1><p className="my-5">Comprueba que estés usando la cuenta propietaria del meliponario.</p><a href="#mis-meliponarios" className={secondary}>Mis meliponarios</a></div> : <OwnerForm key={record?.id || 'nuevo'} remote onSubmitted={refresh} onTelefonoGuardado={telefonoGuardado} onEstadoGuardado={estadoGuardado} userId={user.id} record={record} catalog={data.catalog} onSave={save} storageBlocked={false}/>)}
   </main>;
 }
 
@@ -103,7 +107,7 @@ function OwnerList({ records, catalog, onRefresh, onDelete, remote = false }) {
   </>;
 }
 
-function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote = false, userId, onSubmitted, onTelefonoGuardado }) {
+function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote = false, userId, onSubmitted, onTelefonoGuardado, onEstadoGuardado }) {
   const [form, setForm] = useState(() => ({ ...crearFormulario(record), telefonoPublico: record?.telefonoPublico || '', metodoCaptura: record?.metodoCaptura || 'mapa', precisionMetros: record?.precisionMetros ?? null }));
   const [paso, seleccionarPaso] = useState('informacion');
   const pasos = [['informacion', 'Información'], ['ubicacion', 'Ubicación GPS'], ['abejas', 'Abejas'],
@@ -118,6 +122,7 @@ function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote =
   const [errors, setErrors] = useState({});
   const [failure, setFailure] = useState('');
   const [dirty, setDirty] = useState(false);
+  const [estadoOperativo, setEstadoOperativo] = useState({ dirty: false, busy: false });
   const [publicacion, setPublicacion] = useState({ dirty: false, busy: false });
   const [productosGuardando, setProductosGuardando] = useState(false);
   const [fotos, setFotos] = useState({ dirty: false, busy: false });
@@ -192,7 +197,7 @@ function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote =
     return true;
   }
   async function save(enviar) {
-    if (busy.current || productosGuardando || readOnly || uncertain || gps.loading || publicacion.dirty || publicacion.busy || fotos.dirty || fotos.busy) return;
+    if (busy.current || productosGuardando || readOnly || uncertain || gps.loading || (publicacion.dirty || estadoOperativo.dirty) || (publicacion.busy || estadoOperativo.busy) || fotos.dirty || fotos.busy) return;
     busy.current = true; setSaving(true); setFailure('');
     try {
       const saved = await onSave(form, savedId.current, enviar, catalogActual);
@@ -220,7 +225,7 @@ function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote =
     const result = await next();
     if (result === false && lifecycle.current.active) setDirty(true);
   }
-  const navegacionBloqueada = saving || productosGuardando || gps.loading || fotos.busy || fotos.dirty || publicacion.busy || publicacion.dirty;
+  const navegacionBloqueada = saving || productosGuardando || gps.loading || fotos.busy || fotos.dirty || (publicacion.busy || estadoOperativo.busy) || (publicacion.dirty || estadoOperativo.dirty);
   const generalFields = [['nombre','Nombre del meliponario','Ej. Meliponario Flor de Mayo'],['referencia','Referencia para encontrarlo','Ej. Frente al parque, junto al camino principal']];
   return <>
     <a href="#mis-meliponarios" className={`${quiet} mb-5 px-0`}>← Mis meliponarios</a>
@@ -239,17 +244,19 @@ function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote =
     </nav>
     {remote && record && <div hidden={paso !== 'informacion'}>
       <TelefonoGuardado record={record} userId={userId} onActividad={setPublicacion}
-        bloqueado={dirty || saving || uncertain || fotos.dirty || fotos.busy || Boolean(record.recuperacionPendiente)} onGuardado={onTelefonoGuardado}/>
+        bloqueado={dirty || saving || uncertain || fotos.dirty || fotos.busy || Boolean(record.recuperacionPendiente) || estadoOperativo.dirty || estadoOperativo.busy} onGuardado={onTelefonoGuardado}/>
     </div>}
     {remote && <div hidden={paso !== 'fotografias'}>
-      <OwnerPhotos userId={userId} recordId={record?.id} bloqueado={dirty || saving || uncertain || Boolean(record?.recuperacionPendiente) || publicacion.dirty || publicacion.busy} onActividad={setFotos}/>
+      <OwnerPhotos userId={userId} recordId={record?.id} bloqueado={dirty || saving || uncertain || Boolean(record?.recuperacionPendiente) || (publicacion.dirty || estadoOperativo.dirty) || (publicacion.busy || estadoOperativo.busy)} onActividad={setFotos}/>
     </div>}
     {remote && <div hidden={paso !== 'publicacion'}>
-      <RevisionRegistro record={record} userId={userId} bloqueado={dirty || saving || uncertain}/>
+      {record && <EstadoOperativo record={record} userId={userId} onActividad={setEstadoOperativo} onGuardado={onEstadoGuardado}
+        bloqueado={dirty || saving || uncertain || fotos.dirty || fotos.busy || publicacion.dirty || publicacion.busy || productosGuardando || Boolean(record.recuperacionPendiente)}/>}
+      <RevisionRegistro record={record} userId={userId} bloqueado={dirty || saving || uncertain || estadoOperativo.dirty || estadoOperativo.busy}/>
       {record && <RealSubmission key={record.id + record.estado} userId={userId} record={record}
-        dirty={dirty || saving || uncertain || Boolean(record.recuperacionPendiente) || productosGuardando || publicacion.dirty || publicacion.busy || fotos.dirty || fotos.busy} onSubmitted={onSubmitted}/>}
+        dirty={dirty || saving || uncertain || Boolean(record.recuperacionPendiente) || productosGuardando || (publicacion.dirty || estadoOperativo.dirty) || (publicacion.busy || estadoOperativo.busy) || fotos.dirty || fotos.busy} onSubmitted={onSubmitted}/>}
     </div>}
-    <form noValidate inert={saving || publicacion.dirty || publicacion.busy || fotos.dirty || fotos.busy ? true : undefined} onSubmit={event => { event.preventDefault(); if (remote) { if (validate(false)) void save(false); } else if (validate(true)) confirm.current.showModal(); }} className="grid gap-6">
+    <form noValidate inert={saving || (publicacion.dirty || estadoOperativo.dirty) || (publicacion.busy || estadoOperativo.busy) || fotos.dirty || fotos.busy ? true : undefined} onSubmit={event => { event.preventDefault(); if (remote) { if (validate(false)) void save(false); } else if (validate(true)) confirm.current.showModal(); }} className="grid gap-6">
       {(Object.values(errors).some(Boolean) || failure) && <div ref={errorSummary} tabIndex={-1} role="alert" className="rounded-2xl border border-solid border-[#e0b29d] bg-[#fff3ed] p-5"><p className="font-bold">{failure || 'Revisa estos datos para continuar:'}</p>{Object.entries(errors).filter(([,value]) => value).map(([key,value]) => <p key={key} className="mt-2 text-sm">• {value}</p>)}</div>}
       <Section visible={paso === 'informacion'} id="informacion" number={indice + 1} title="El lugar que cuidas" description="Empieza por su nombre y ubicación. Las localidades cambian según el municipio que elijas.">
         <fieldset disabled={readOnly} className="grid gap-5"><div><label htmlFor="nombre">{generalFields[0][1]} <span className="font-normal text-[#76816d]">{remote ? '· necesario para guardar' : '· necesario para enviar'}</span></label><input id="nombre" className="owner-field" maxLength={remote ? 160 : 120} value={form.nombre} placeholder={readOnly ? '' : generalFields[0][2]} onChange={event => change('nombre',event.target.value)} aria-invalid={Boolean(errors.nombre)} aria-describedby={errors.nombre ? 'error-nombre' : undefined}/><FieldError id="error-nombre">{errors.nombre}</FieldError></div>
@@ -279,7 +286,7 @@ function OwnerForm({ record, catalog, onSave, storageBlocked, onDelete, remote =
       </Section>
       {form.vendeMiel && <Section visible={paso === 'productos'} id="productos" number={indice + 1} title="Los productos que ofreces" description={remote ? "Elige los productos del catálogo del administrador e indica cuáles ofreces." : "Prepara tarjetas con el nombre y la presentación."}>
         {remote ? <ProductosDelCatalogo key={userId + (record?.id || 'nuevo')} usuario={userId} registro={record?.id}
-          bloqueado={dirty || saving || uncertain || Boolean(record?.recuperacionPendiente) || publicacion.dirty || publicacion.busy || fotos.dirty || fotos.busy}
+          bloqueado={dirty || saving || uncertain || Boolean(record?.recuperacionPendiente) || (publicacion.dirty || estadoOperativo.dirty) || (publicacion.busy || estadoOperativo.busy) || fotos.dirty || fotos.busy}
           onGuardando={setProductosGuardando}/> : <OwnerProducts value={form.productos} readOnly={readOnly} editorRef={productsEditor} onDirty={() => setDirty(true)} onChange={value => change('productos',value)}/>}
         <FieldError>{errors.productos}</FieldError>
       </Section>}

@@ -1,3 +1,5 @@
+import { estadosOperativos } from '../ownerMeliponarios/estadoOperativo.mjs';
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const texto = value => typeof value === 'string' ? value : '';
 const invalido = () => new Error('No pudimos verificar los datos públicos. Actualiza e inténtalo de nuevo.');
@@ -32,6 +34,7 @@ export function normalizarFichaPublica(value) {
     nombreContacto: texto(value.nombre_contacto).trim() || 'Sin nombre de contacto', telefonoContacto: texto(value.telefono_contacto),
     vendeMiel: value.ofrece_venta_miel, recibeVisitas: value.ofrece_visitas,
     informacionTecnicaVerificada: value.informacion_tecnica_verificada,
+    estadoOperativo: Object.hasOwn(estadosOperativos, value.estado_operativo) ? value.estado_operativo : null,
     estado: 'Publicado', coordenadas: [value.latitud, value.longitud],
     // La consulta pública ya limita las coordenadas a registros publicables.
     ubicacionAproximada: false,
@@ -146,7 +149,7 @@ export function enlaceTelefono(value) {
 
 const normalizar = value => texto(value).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 export function filtrarPublicos(items, filtros = {}) {
-  return items.filter(item => (!filtros.activos || (item.fuente === 'publico-aprobado' ? item.informacionTecnicaVerificada : item.estado === 'Activo')) &&
+  return items.filter(item => (!filtros.activos || (item.fuente === 'publico-aprobado' ? item.estadoOperativo === 'activo' : item.estado === 'Activo')) &&
     (!filtros.municipio || item.municipio === filtros.municipio) &&
     (!filtros.especie || item.especiesDisponibles === false || item.especies.includes(filtros.especie)) &&
     (!filtros.conProductos || item.productosDisponibles === false || item.productos.length > 0) &&
