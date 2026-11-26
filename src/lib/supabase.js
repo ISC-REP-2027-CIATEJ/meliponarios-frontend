@@ -1,4 +1,5 @@
 import { crearRecuperacion } from "../features/auth/passwordRecovery.mjs";
+import { crearConfirmacionCorreo, esRutaConfirmacion } from "../features/auth/confirmacionCorreo.mjs";
 import { createClient } from "@supabase/supabase-js";
 
 // Estas variables son públicas. Nunca poner una clave service_role aquí.
@@ -8,8 +9,13 @@ const clave = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 export const supabaseConfigurado = Boolean(url && clave);
 
 // Dejamos ver los formularios aunque todavía falte configurar Supabase.
-export const supabase = supabaseConfigurado ? createClient(url, clave) : null;
+// La pantalla de confirmación procesa su enlace una sola vez. Recuperación
+// conserva el comportamiento existente de Supabase para sus propios enlaces.
+export const supabase = supabaseConfigurado ? createClient(url, clave, {
+  auth: { detectSessionInUrl: !esRutaConfirmacion(window.location) },
+}) : null;
 
+export const confirmacionCorreo = crearConfirmacionCorreo(supabase, window);
 export const recuperacionPassword = crearRecuperacion(supabase, window);
 
 export function comprobarConfiguracion() {

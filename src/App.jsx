@@ -1,5 +1,6 @@
 import ResetPasswordPage from "./pages/Login/ResetPasswordPage";
-import { recuperacionPassword } from "./lib/supabase";
+import ConfirmEmailPage from "./pages/Register/ConfirmEmailPage";
+import { confirmacionCorreo, recuperacionPassword } from "./lib/supabase";
 import { FIELD_REVIEWS_ROUTE } from './features/fieldReviews/fieldReviewsModel.mjs';
 import { ADMIN_USERS_ROUTE } from './features/adminUsers/adminUsersModel.mjs';
 import { ADMIN_COVERAGE_ROUTE } from './features/territory/territoryCoverageModel.mjs';
@@ -33,6 +34,8 @@ function paginaActual() {
 }
 export default function App() {
   const recovery = useSyncExternalStore(recuperacionPassword.subscribe, recuperacionPassword.getSnapshot);
+  const confirmacion = useSyncExternalStore(confirmacionCorreo.subscribe, confirmacionCorreo.getSnapshot);
+  if (confirmacion.fase !== "inactiva") return <ConfirmEmailPage estado={confirmacion} onContinuar={confirmacionCorreo.continuar}/>;
   return recovery.fase !== "inactiva" ? <ResetPasswordPage estado={recovery}/> : <AplicacionPrincipal/>;
 }
 
