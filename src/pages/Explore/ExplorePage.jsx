@@ -90,13 +90,16 @@ export default function ExplorePage({ onLogin, onLogout, onOpenMap, onOpenDetail
           <div>{nombre && <p className="km-home-greeting">Hola, {nombre}</p>}<h1 id="titulo" className="km-page-title">Descubre los meliponarios de Yucatán</h1></div>
           <ClientRegistrationButton user={user} sessionReady={sessionReady}/>
         </div>
-      </section>
-
-      <div className="km-container km-home-content">
+        <div className="km-container">
         <section className="km-home-controls" aria-label="Buscar y filtrar">
           <PublicSearch value={filtrosBusqueda.busqueda} onChange={busqueda => update({ busqueda })}/>
           <PublicFilters items={publicos.items} filtros={filtrosBusqueda} update={update} clear={clear}/>
         </section>
+        </div>
+      </section>
+
+      <div className="km-container km-home-content">
+
 
         <div className="km-home-overview">
           <div className="km-home-actions" aria-label="Explorar por actividad">

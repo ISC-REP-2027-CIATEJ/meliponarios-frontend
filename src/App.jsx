@@ -1,8 +1,10 @@
+import ResetPasswordPage from "./pages/Login/ResetPasswordPage";
+import { recuperacionPassword } from "./lib/supabase";
 import { FIELD_REVIEWS_ROUTE } from './features/fieldReviews/fieldReviewsModel.mjs';
 import { ADMIN_USERS_ROUTE } from './features/adminUsers/adminUsersModel.mjs';
 import { ADMIN_COVERAGE_ROUTE } from './features/territory/territoryCoverageModel.mjs';
 import { esRutaCliente } from './features/ownerMeliponarios/routes';
-import { useEffect, useRef, useState, lazy, Suspense } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react';
 import LoginPage from "./pages/Login/LoginPage";
 import RegisterPage from "./pages/Register/RegisterPage";
 import ExplorePage from "./pages/Explore/ExplorePage";
@@ -30,6 +32,11 @@ function paginaActual() {
     : "explorar";
 }
 export default function App() {
+  const recovery = useSyncExternalStore(recuperacionPassword.subscribe, recuperacionPassword.getSnapshot);
+  return recovery.fase !== "inactiva" ? <ResetPasswordPage estado={recovery}/> : <AplicacionPrincipal/>;
+}
+
+function AplicacionPrincipal() {
   const [page, setPage] = useState(paginaActual);
   const [filtros, setFiltros] = useState(filtrosIniciales);
   const [user, setUser] = useState(null);

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { descargarFotoProductoPublico } from './publicService';
+import Icon from '../../pages/Explore/Icon';
 
 export default function FotoProductoPublico({ producto }) {
   const [imagen, mostrar] = useState(null);
@@ -15,6 +16,10 @@ export default function FotoProductoPublico({ producto }) {
     }).catch(() => {});
     return () => { vigente = false; if (url) URL.revokeObjectURL(url); };
   }, [producto.foto]);
-  return imagen && imagen.ruta === producto.foto
-    ? <img className="mb-2 size-20 rounded-xl object-cover" src={imagen.url} alt={producto.nombre} onError={() => mostrar(null)}/> : null;
+  return <div className="detail-product-photo">
+    {imagen && imagen.ruta === producto.foto
+      ? <img src={imagen.url} alt={'Fotografía de ' + producto.nombre} loading="lazy" onError={() => mostrar(null)}/>
+      : <span className="detail-product-no-photo"><Icon name="bag" size={27}/><span>Sin fotografía</span></span>}
+  </div>;
 }
+
