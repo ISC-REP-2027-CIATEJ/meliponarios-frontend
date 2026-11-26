@@ -13,7 +13,7 @@ export default function RegisterPage({ onLogin }) {
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const titulo = useRef(null);
   const envioEnCurso = useRef(false);
-  const hayCambios = Object.values(datos).some(valor => valor !== '');
+  const hayCambios = Object.keys(datosIniciales).some(campo => datos[campo] !== datosIniciales[campo]);
   const photo = import.meta.env.VITE_LOGIN_IMAGE?.trim();
 
   useEffect(() => {
@@ -32,8 +32,8 @@ export default function RegisterPage({ onLogin }) {
   }, [hayCambios, resultado]);
 
   function cambiarCampo(event) {
-    const { name, value } = event.target;
-    setDatos({ ...datos, [name]: value });
+    const { name, value, type, checked } = event.target;
+    setDatos({ ...datos, [name]: type === 'checkbox' ? checked : value });
     setErrores({ ...errores, [name]: undefined });
     setError('');
   }
@@ -105,6 +105,17 @@ export default function RegisterPage({ onLogin }) {
           </div>
           <p className="text-sm text-muted">Utiliza entre 8 y 128 caracteres.</p>
           <label className="flex min-h-11 items-center gap-2 text-sm font-semibold"><input className="size-5 accent-bosque" type="checkbox" checked={mostrarPassword} onChange={event => setMostrarPassword(event.target.checked)}/>Mostrar contraseñas</label>
+          <div className="rounded-2xl border border-solid border-line bg-soft p-4">
+            <label className="flex items-start gap-3 text-sm leading-relaxed" htmlFor="consentimientoAceptado">
+              <input id="consentimientoAceptado" name="consentimientoAceptado" type="checkbox" required
+                className="mt-0.5 size-5 shrink-0 accent-bosque" checked={datos.consentimientoAceptado}
+                onChange={cambiarCampo} aria-invalid={Boolean(errores.consentimientoAceptado)}
+                aria-describedby={'registro-documentos-nota' + (errores.consentimientoAceptado ? ' consentimientoAceptado-error' : '')}/>
+              <span>Acepto los <strong>términos y condiciones</strong> y el <strong>aviso de privacidad</strong>.</span>
+            </label>
+            <p id="registro-documentos-nota" className="mt-3 text-xs leading-relaxed text-muted">Documentos pendientes de publicación. El registro se encuentra en fase de pruebas.</p>
+            {errores.consentimientoAceptado && <p id="consentimientoAceptado-error" role="alert" className="km-auth-error mt-2">{errores.consentimientoAceptado}</p>}
+          </div>
         </fieldset>
         {error && <p className="km-status mt-3" role="alert">{error}</p>}
         <div className="km-auth-actions"><button type="submit" className="km-button km-button--primary" disabled={enviando}>{enviando ? 'Creando cuenta…' : 'Crear cuenta'}<Icon name="arrow" size={18}/></button></div>
