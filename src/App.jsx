@@ -11,6 +11,8 @@ import DetailPage from "./pages/Detail/DetailPage";
 import { filtrosIniciales } from "./data/filtros";
 import { getSession, logout } from "./services/authService";
 
+const AdminDeactivationsPage = lazy(() => import('./pages/AdminDeactivations/AdminDeactivationsPage'));
+const VisitAgendaPage = lazy(() => import('./pages/VisitAgenda/VisitAgendaPage'));
 const WorkTeamsPage = lazy(() => import('./pages/WorkTeams/WorkTeamsPage'));
 const AdminAssignmentsPage = lazy(() => import('./pages/AdminAssignments/AdminAssignmentsPage'));
 const AdminProductsPage = lazy(() => import('./pages/AdminProducts/AdminProductsPage'));
@@ -22,7 +24,7 @@ const OwnerMeliponariosPage = lazy(() => import('./pages/Owner/OwnerMeliponarios
 
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return pagina === 'administracion/productos' || pagina === 'territorio/equipos' || pagina === ADMIN_COVERAGE_ROUTE || pagina === 'campo/asignaciones-tecnicas' || pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
+  return pagina === 'administracion/bajas' || pagina === 'agenda-visitas' || pagina === 'administracion/productos' || pagina === 'territorio/equipos' || pagina === ADMIN_COVERAGE_ROUTE || pagina === 'campo/asignaciones-tecnicas' || pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
     pagina.startsWith("meliponario/")
     ? pagina
     : "explorar";
@@ -119,6 +121,10 @@ export default function App() {
     return <Suspense fallback={<main role="status" className="p-10">Cargando cobertura territorial.</main>}><AdminCoveragePage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page === 'administracion/asignaciones')
     return <Suspense fallback={<main role="status" className="p-10">Cargando asignaciones.</main>}><AdminAssignmentsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
+  if (page === 'administracion/bajas')
+    return <Suspense fallback={<main role="status" className="p-10">Cargando solicitudes…</main>}><AdminDeactivationsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
+  if (page === 'agenda-visitas')
+    return <Suspense fallback={<main role="status" className="p-10">Cargando agenda…</main>}><VisitAgendaPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page === 'campo/asignaciones-tecnicas')
     return <Suspense fallback={<main role="status" className="p-10">Cargando asignaciones técnicas.</main>}><TechnicalAssignmentsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/></Suspense>;
   if (page === FIELD_REVIEWS_ROUTE)

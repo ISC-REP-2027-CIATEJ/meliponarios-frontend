@@ -114,6 +114,7 @@ function Workspace({ user }) {
     <div className="km-work-banner km-page-heading">
       <div>
         <h1 className="km-page-title">Coordinación de meliponarios</h1>
+        <a className="km-button mt-3" href="#agenda-visitas">Agenda e historial de visitas</a>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">Asigna equipo y trabajador, consulta las visitas vigentes y revisa las fichas técnicas desde este espacio.</p>
       </div>
       <button type="button" className={button} disabled={loading || busy} onClick={refresh}>{loading ? 'Actualizando…' : 'Actualizar registros'}</button>

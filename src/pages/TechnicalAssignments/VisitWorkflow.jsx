@@ -109,6 +109,7 @@ export default function VisitWorkflow() {
   return <main className="km-container km-workspace">
     <header className="km-work-banner km-page-heading"><div>
       <h1 className="km-page-title">Mis visitas de campo</h1>
+      <a className="km-button mt-3" href="#agenda-visitas">Programación y calendario</a>
       <p className="mt-2">Abre la app de campo con esta misma cuenta para capturar o corregir tu ficha.</p>
     </div><button className={boton} onClick={() => { setPagina(0); refrescar(v => v + 1); }}>Actualizar bandeja</button></header>
     <a className={boton + ' mb-4'} href="#campo/solicitudes">Solicitudes básicas</a>
