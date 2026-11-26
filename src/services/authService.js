@@ -7,7 +7,7 @@ export const hasBackend = supabaseConfigurado;
 // El trigger del backend registra el perfil y la aceptación de documentos.
 export async function register(datos) {
   comprobarConfiguracion();
-  return registrarCuenta(supabase, datos);
+  return registrarCuenta(supabase, datos, window.location);
 }
 
 // Etiquetas correspondientes a los IDs confirmados en public.roles.

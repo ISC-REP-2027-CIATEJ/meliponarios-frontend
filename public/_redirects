@@ -1,3 +1,5 @@
+/confirm-email      /index.html    200
+/confirm-email/     /index.html    200
 /reset-password     /index.html    200
 /reset-password/    /index.html    200
 /*                  /index.html    200

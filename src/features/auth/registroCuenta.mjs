@@ -1,3 +1,5 @@
+import { urlConfirmacion } from './confirmacionCorreo.mjs';
+
 // Identificadores temporales para las pruebas acordadas del proyecto.
 // No representan documentos oficiales. Al publicarlos, actualizar sus versiones
 // y el aviso visible en RegisterPage.jsx en la misma entrega.
@@ -42,8 +44,9 @@ export function crearSolicitudRegistro(datos) {
   };
 }
 
-export async function registrarCuenta(cliente, datos) {
+export async function registrarCuenta(cliente, datos, location) {
   const solicitud = crearSolicitudRegistro(datos);
+  if (location) solicitud.options.emailRedirectTo = urlConfirmacion(location);
   if (!cliente?.auth?.signUp) throw new Error('El servicio de registro no está configurado.');
   let respuesta;
   try {
