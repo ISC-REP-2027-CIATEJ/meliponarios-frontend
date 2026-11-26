@@ -3,11 +3,15 @@ import assert from 'node:assert/strict';
 import { crearBajasApi } from '../src/features/adminDeactivations/bajasApi.mjs';
 const id=n=>'10000000-0000-4000-8000-'+String(n).padStart(12,'0');
 function preparar() {
-  const f={rol:1,activo:true,usuario:id(1),lecturas:0,escrituras:[],fallo:null,filas:[]};
+  const f={rol:1,activo:true,usuario:id(1),lecturas:0,escrituras:[],fallo:null,filas:[],version:2,retiroAusente:false};
   const api=crearBajasApi({
     auth:{getUser:async()=>({data:{user:{id:f.usuario}}})},
     from:()=>({select(){return this;},eq(){return this;},maybeSingle:async()=>({data:{id:id(1),rol_id:f.rol,activo:f.activo}})}),
     rpc(nombre,args){
+      if(nombre==='admin_estado_retiro_baja')return {maybeSingle:async()=>f.retiroAusente
+        ?{error:{code:'PGRST202'}}
+        :{data:{meliponario_id:id(3),version_contrato:f.version,estado_operativo:'inactivo',visibilidad:'privado',publicacion_bloqueada:true}}};
+
       if(nombre==='admin_resolver_desactivacion_meliponario'){
         f.escrituras.push(args);
         if(f.fallo==='red')throw Error('Sin conexión');
@@ -50,4 +54,17 @@ test('una resolución concurrente y una respuesta perdida exigen comprobar la so
   await assert.rejects(api.resolver(id(1),id(2),'aprobar','Comentario suficiente'),/ya fue resuelta/);
   f.fallo='red';
   await assert.rejects(api.resolver(id(1),id(2),'aprobar','Comentario suficiente'),e=>e.incierto===true);
+});
+
+test('sin contrato de retiro actualizado, no se aprueba ni se escribe una baja',async()=>{
+  const {f,api}=preparar();
+  f.retiroAusente=true;
+  await assert.rejects(api.resolver(id(1),id(2),'aprobar','Comentario suficiente'),e=>e.sinEscritura===true);
+  assert.equal(f.escrituras.length,0);
+  assert.equal(await api.resolver(id(1),id(2),'rechazar','Comentario suficiente'),id(2));
+});
+test('la comprobación de retiro consulta únicamente como administrador activo',async()=>{
+  const {f,api}=preparar();
+  assert.deepEqual(await api.estadoRetiro(id(1),id(2)),{registro:id(3),estado:'inactivo',privado:true,bloqueado:true});
+  f.rol=5;await assert.rejects(api.estadoRetiro(id(1),id(2)),/administrador/);
 });

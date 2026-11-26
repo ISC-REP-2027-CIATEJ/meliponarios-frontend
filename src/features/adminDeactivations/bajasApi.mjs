@@ -8,13 +8,27 @@ export function crearBajasApi(cliente) {
     const {data,error}=await cliente.from('perfiles').select('id,rol_id,activo').eq('id',usuario).maybeSingle();
     if(error || data?.id!==usuario || data.activo!==true || Number(data.rol_id)!==1)throw new Error('Se requiere una cuenta activa de administrador general.');
   }
+  async function leerRetiro(solicitud) {
+    const {data,error}=await cliente.rpc('admin_estado_retiro_baja',{p_solicitud_id:solicitud}).maybeSingle();
+    if(error || data?.version_contrato!==2 || !validId(data?.meliponario_id) ||
+        typeof data.publicacion_bloqueada!=='boolean' || !['publico','privado'].includes(data.visibilidad)) {
+      throw Object.assign(new Error('El retiro público por baja todavía no está habilitado. El responsable del sistema debe completar la actualización.'),{sinEscritura:true});
+    }
+    return {registro:data.meliponario_id,estado:data.estado_operativo,privado:data.visibilidad==='privado',bloqueado:data.publicacion_bloqueada};
+  }
   return {
+    async estadoRetiro(usuario,solicitud) {
+      if(!validId(solicitud))throw new Error('Vuelve a seleccionar la solicitud.');
+      await autorizar(usuario);
+      return leerRetiro(solicitud);
+    },
     async resolver(usuario,solicitud,decision,comentario) {
       const nota=comentario.trim();
       if(!validId(solicitud)||!['aprobar','rechazar'].includes(decision)||Array.from(nota).length<10||Array.from(nota).length>1000){
         throw new Error('Selecciona una decisión y escribe un comentario de 10 a 1000 caracteres.');
       }
       await autorizar(usuario);
+      if(decision==='aprobar')await leerRetiro(solicitud);
       let respuesta;
       try {
         respuesta=await cliente.rpc('admin_resolver_desactivacion_meliponario',{

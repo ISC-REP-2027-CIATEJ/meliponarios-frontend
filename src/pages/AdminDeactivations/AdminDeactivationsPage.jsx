@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { OwnerHeader } from '../../components/ClientNavigation';
 import { supabase,comprobarConfiguracion } from '../../lib/supabase';
 import { crearBajasApi } from '../../features/adminDeactivations/bajasApi.mjs';
@@ -58,7 +58,7 @@ function Bandeja({user}) {
   async function resolver(e){
     e.preventDefault();
     if(candado.current||incierto||!seleccion)return;
-    const efecto=decision==='aprobar'?'La solicitud quedará aprobada y el meliponario pasará a Inactivo.':'La solicitud quedará rechazada.';
+    const efecto=decision==='aprobar'?'La baja se aprobará y se retirará la ficha pública, conservando el historial.':'La solicitud quedará rechazada.';
     if(!window.confirm(efecto+' ¿Confirmar la resolución de '+seleccion.nombre+'?'))return;
     candado.current=true;esperar(true);fallar('');
     try{
@@ -66,7 +66,7 @@ function Bandeja({user}) {
       if(!vivo.current)return;
       abrir({...seleccion,resolucion:decision,comentario});
       cambiar(prev=>({...prev,filas:prev.filas.filter(s=>s.id!==seleccion.id)}));
-    }catch(error){if(vivo.current){fallar(error.message);marcar(true);}}
+    }catch(error){if(vivo.current){fallar(error.message);marcar(error.sinEscritura!==true);}}
     finally{candado.current=false;if(vivo.current)esperar(false);}
   }
   async function comprobarResolucion(){
@@ -116,35 +116,53 @@ function Bandeja({user}) {
       <p className="mt-3">{seleccion.cliente}</p><p className="mt-2 text-sm">{instanteVisible(seleccion.fecha)}</p>
       <h3 className="mt-5 font-bold">Motivo de la solicitud</h3><p className="my-3 whitespace-pre-wrap">{seleccion.motivo}</p>
       {seleccion.resolucion ? <p role="status" className="my-4 rounded-xl bg-soft p-4">{seleccion.resolucion==='aprobar'
-        ?'Solicitud aprobada. La función actualiza el meliponario a Inactivo. Comprueba su visibilidad pública.'
+        ?'Solicitud aprobada. Se está comprobando el retiro de la ficha pública.'
           :seleccion.resolucion==='rechazar'?'Solicitud rechazada y comentario guardado.':'La solicitud ya no está en la bandeja pendiente.'}</p>
         :<form onSubmit={resolver} className="my-5 grid gap-4">
           <label>Decisión<select required className="review-field mt-2" value={decision} disabled={ocupado||incierto} onChange={e=>elegirDecision(e.target.value)}>
             <option value="">Selecciona una decisión</option><option value="aprobar">Aprobar la solicitud de baja</option><option value="rechazar">Rechazar la solicitud</option>
           </select></label>
           <label>Comentario de resolución<textarea required minLength={10} maxLength={1000} className="review-field mt-2" value={comentario} disabled={ocupado||incierto} onChange={e=>escribir(e.target.value)}/></label>
-          <p className="text-sm text-muted">Escribe entre 10 y 1000 caracteres. Al aprobar, el estado operativo pasa a Inactivo.</p>
+          <p className="text-sm text-muted">Escribe entre 10 y 1000 caracteres. Al aprobar se bloquea la publicación y se conserva el historial.</p>
           <button className="km-button km-button--primary justify-self-start" disabled={ocupado||incierto||!decision||Array.from(comentario.trim()).length<10}>Confirmar resolución</button>
           {incierto&&<button type="button" className="km-button justify-self-start" disabled={ocupado} onClick={comprobarResolucion}>Comprobar solicitud</button>}
         </form>}
       {seleccion.comentario&&<p className="my-3 whitespace-pre-wrap">{seleccion.comentario}</p>}
       {errorOperacion&&<p role="alert" className="my-3 text-[#944c32]">{errorOperacion}</p>}
-      <ConsultaPublica key={seleccion.id+':'+(seleccion.resolucion||'pendiente')} registro={seleccion.registro}/>
+      <ConsultaPublica key={seleccion.id+':'+(seleccion.resolucion||'pendiente')} registro={seleccion.registro} solicitud={seleccion.id} usuario={user.id} aprobada={seleccion.resolucion==='aprobar'}/>
       <button className="km-button mt-5" disabled={ocupado} onClick={cerrar}>Cerrar</button>
     </dialog>}
   </main>;
 }
-function ConsultaPublica({registro}) {
+function ConsultaPublica({registro,solicitud,usuario,aprobada}) {
   const [resultado,mostrar]=useState(null);
   const [ocupado,esperar]=useState(false);
   const [error,fallar]=useState('');
-  async function comprobar(){
-    if(ocupado)return;
-    esperar(true);mostrar(null);fallar('');
-    try{mostrar(Boolean(await obtenerFichaPublica(registro)));}catch(e){fallar(e.message);}finally{esperar(false);}
-  }
-  return <div className="mt-5"><button className="km-button" disabled={ocupado} onClick={comprobar}>Comprobar ficha pública</button>
-    {resultado!==null&&<p className="mt-3">{resultado?<a href={'#meliponario/'+registro}>Ficha visible para visitantes</a>:'Ficha ausente de la consulta pública.'}</p>}
+  const candado=useRef(false);
+  const vivo=useRef(false);
+  useEffect(()=>{vivo.current=true;return()=>{vivo.current=false;};},[]);
+  const comprobar=useCallback(async()=>{
+    if(candado.current)return;
+    candado.current=true;esperar(true);mostrar(null);fallar('');
+    try{
+      const [ficha,retiro]=await Promise.all([
+        obtenerFichaPublica(registro),
+        aprobada?api.estadoRetiro(usuario,solicitud):Promise.resolve(null),
+      ]);
+      if(retiro && retiro.registro!==registro)throw new Error('No se pudo comprobar el retiro de este meliponario.');
+      if(vivo.current)mostrar({publica:Boolean(ficha),confirmado:aprobada&&!ficha&&retiro.privado&&retiro.bloqueado});
+    }catch(e){if(vivo.current)fallar(e.message);}
+    finally{candado.current=false;if(vivo.current)esperar(false);}
+  },[registro,solicitud,usuario,aprobada]);
+  useEffect(()=>{let vigente=true;if(aprobada)Promise.resolve().then(()=>{if(vigente)comprobar();});return()=>{vigente=false;};},[aprobada,comprobar]);
+  return <div className="mt-5">
+    <button className="km-button" disabled={ocupado} onClick={comprobar}>{ocupado?'Comprobando retiro…':'Comprobar ficha pública'}</button>
+    {resultado&&<p className="km-status mt-3" role={aprobada&&!resultado.confirmado?'alert':'status'}>
+      {resultado.confirmado?'Retiro confirmado: ficha privada, publicación bloqueada y ausente de la consulta sin sesión.'
+        :resultado.publica?<>La ficha sigue visible para visitantes. {aprobada?'El retiro requiere revisión del responsable del sistema.':null}
+          <a className="ml-2 underline" href={'#meliponario/'+registro}>Consultar ficha</a></>
+          :aprobada?'La ficha no aparece públicamente, pero falta confirmar el bloqueo de publicación.':'Ficha ausente de la consulta pública.'}
+    </p>}
     {error&&<p role="alert" className="mt-3">{error}</p>}
   </div>;
 }

@@ -1,30 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { almacenProductos } from '../../features/adminProducts/catalogStorage.mjs';
-import { rutaObjeto } from '../../features/adminProducts/catalogApi.mjs';
 import { crearOfertaReal, disponibilidad } from '../../features/ownerMeliponarios/ofertaReal.mjs';
 
-const api = crearOfertaReal(supabase);
+import FotoProductoCatalogo from './FotoProductoCatalogo';
+import './ProductosDelCatalogo.css';
 
-function FotoCatalogo({ ruta, nombre }) {
-  const [foto, setFoto] = useState('');
-  const [fallo, setFallo] = useState(false);
-  useEffect(() => {
-    if (!ruta || !almacenProductos.bucket) return;
-    let vigente = true;
-    let temporal;
-    async function cargar() {
-      const { data, error } = await supabase.storage.from(almacenProductos.bucket).download(rutaObjeto(ruta));
-      if (error || !data?.size) throw new Error();
-      if (vigente) { temporal = URL.createObjectURL(data); setFoto(temporal); }
-    }
-    cargar().catch(() => { if (vigente) setFallo(true); });
-    return () => { vigente = false; if (temporal) URL.revokeObjectURL(temporal); };
-  }, [ruta]);
-  return foto && !fallo
-    ? <img src={foto} alt={nombre} onError={() => setFallo(true)} className="h-28 w-28 rounded-2xl object-cover"/>
-    : <p className="text-xs text-muted">{fallo || !ruta || !almacenProductos.bucket ? 'Fotografía de catálogo no disponible.' : 'Cargando fotografía…'}</p>;
-}
+const api = crearOfertaReal(supabase);
 
 export default function ProductosDelCatalogo({ usuario, registro, bloqueado, onGuardando }) {
   const [datos, setDatos] = useState(null);
@@ -54,6 +35,7 @@ export default function ProductosDelCatalogo({ usuario, registro, bloqueado, onG
   const asociados = datos?.oferta || [];
   const vinculo = asociados.find(p => p.producto_id === elegido);
   const producto = datos?.catalogo.find(p => p.id === elegido) || vinculo;
+  const catalogoPorId = new Map((datos?.catalogo || []).map(p => [p.id, p]));
   const asignados = new Set(asociados.map(p => p.producto_id));
   const disponibles = datos?.catalogo.filter(p => !asignados.has(p.id)) || [];
   const ocupado = bloqueado || guardando;
@@ -92,11 +74,18 @@ export default function ProductosDelCatalogo({ usuario, registro, bloqueado, onG
     {error && <p role="alert">{error}</p>}
     {!datos && !error && <p role="status">Consultando catálogo y productos guardados…</p>}
     {datos && <>
-      {asociados.length ? <ul className="grid gap-2">{asociados.map(p =>
-        <li key={p.producto_id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-soft p-3">
-          <div><strong>{p.nombre}</strong><p className="text-sm">{disponibilidad[p.estado] || 'Estado sin identificar'}{!p.producto_activo && ' · Inactivo en el catálogo'}</p></div>
-          <button type="button" className="km-button" disabled={guardando} onClick={() => { setElegido(p.producto_id); setMensaje(''); }}
-            aria-label={'Ver ' + p.nombre}>Ver producto</button>
+      {asociados.length ? <ul className="owner-catalog-list" role="list">{asociados.map(p =>
+        <li key={p.producto_id} className={'owner-catalog-row' + (elegido === p.producto_id ? ' owner-catalog-row--selected' : '')}>
+          <FotoProductoCatalogo ruta={p.imagen_storage || catalogoPorId.get(p.producto_id)?.imagen_storage} nombre={p.nombre}/>
+          <div className="owner-catalog-name"><strong>{p.nombre}</strong><p>
+            <span className="owner-product-state" data-state={p.estado}>{disponibilidad[p.estado] || 'Estado sin identificar'}</span>
+            {p.producto_activo === false && <span className="owner-product-inactive">Inactivo en el catálogo</span>}
+          </p></div>
+          <button type="button" className="km-button" disabled={guardando}
+            onClick={() => { setElegido(elegido === p.producto_id ? '' : p.producto_id); setMensaje(''); }}
+            aria-expanded={elegido === p.producto_id} aria-label={(elegido === p.producto_id ? 'Cerrar detalles de ' : 'Consultar disponibilidad de ') + p.nombre}>
+            {elegido === p.producto_id ? 'Cerrar detalles' : p.producto_activo === false ? 'Consultar' : 'Disponibilidad'}
+          </button>
         </li>)}</ul> : <p className="text-sm text-muted">Todavía no has agregado productos a este meliponario.</p>}
       <label>Agregar del catálogo
         <select className="owner-field" value={vinculo ? '' : elegido} disabled={!disponibles.length || guardando}
@@ -105,17 +94,19 @@ export default function ProductosDelCatalogo({ usuario, registro, bloqueado, onG
           {disponibles.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
         </select>
       </label>
-      {producto && <div className="km-record-inset grid gap-3 p-5" aria-label="Producto seleccionado">
-        <FotoCatalogo key={elegido + ':' + producto.imagen_storage} ruta={producto.imagen_storage} nombre={producto.nombre}/>
-        <h3 className="text-lg font-bold">{producto.nombre}</h3>{producto.descripcion && <p>{producto.descripcion}</p>}
-        {vinculo?.producto_activo === false ? <p>El administrador desactivó este producto.</p> : <>
-          <p className="text-sm">{vinculo ? 'Elige la nueva disponibilidad para guardarla.' : 'Elige la disponibilidad para agregar este producto.'}</p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label={'Disponibilidad de ' + producto.nombre}>
-            {Object.entries(disponibilidad).map(([valor, etiqueta]) =>
-              <button type="button" key={valor} className={'km-button' + (valor === vinculo?.estado ? ' km-button--primary' : '')}
-                aria-pressed={valor === vinculo?.estado} disabled={ocupado || valor === vinculo?.estado} onClick={() => guardar(valor)}>{etiqueta}</button>)}
-          </div>
-        </>}
+      {producto && <div className="owner-product-detail" aria-label="Producto seleccionado">
+        <FotoProductoCatalogo ruta={producto.imagen_storage} nombre={producto.nombre} grande/>
+        <div><h3>{producto.nombre}</h3>{producto.descripcion && <p className="owner-product-detail-description">{producto.descripcion}</p>}</div>
+        <div className="owner-product-detail-actions">
+          {vinculo?.producto_activo === false ? <p>El administrador desactivó este producto.</p> : <>
+            <p className="text-sm">{vinculo ? 'Elige la nueva disponibilidad para guardarla.' : 'Elige la disponibilidad para agregar este producto.'}</p>
+            <div className="flex flex-wrap gap-2" role="group" aria-label={'Disponibilidad de ' + producto.nombre}>
+              {Object.entries(disponibilidad).map(([valor, etiqueta]) =>
+                <button type="button" key={valor} className={'km-button' + (valor === vinculo?.estado ? ' km-button--primary' : '')}
+                  aria-pressed={valor === vinculo?.estado} disabled={ocupado || valor === vinculo?.estado} onClick={() => guardar(valor)}>{etiqueta}</button>)}
+            </div>
+          </>}
+        </div>
       </div>}
       {bloqueado && <p className="text-sm text-muted">Termina primero el guardado o la edición pendiente del registro.</p>}
     </>}

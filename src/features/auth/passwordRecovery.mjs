@@ -25,21 +25,30 @@ export function errorRecuperacion(error) {
 export function crearRecuperacion(client, browser) {
   const listeners = new Set();
   const solicitada = esRutaRecuperacion(browser.location);
+  const query = new URLSearchParams(browser.location.search || '');
+  const conHash = solicitada && query.has('token_hash');
+  // Captura temporal del enlace; no entra al estado, logs ni almacenamiento.
+  let tokenHash = query.get('token_hash');
+  const hashValido = conHash && query.getAll('token_hash').length === 1 &&
+    query.getAll('type').length === 1 && query.get('type') === 'recovery' &&
+    typeof tokenHash === 'string' && tokenHash.length > 0 && tokenHash.length <= 1024 &&
+    !/\s/.test(tokenHash);
   let estado = { fase: solicitada ? 'comprobando' : 'inactiva', error: '' };
   let usuario = null;
   let guardando = false;
   let verificacion;
-  const emit = next => { estado = Object.freeze(next); listeners.forEach(fn => fn()); };
+  let vigente = true;
+  const emit = next => { if (!vigente) return; estado = Object.freeze(next); listeners.forEach(fn => fn()); };
   const limpiarUrl = () => {
     if (browser.location.pathname === '/reset-password' && !browser.location.hash && !browser.location.search) return;
     browser.history.replaceState(null, '', '/reset-password');
   };
   function invalidar() {
-    usuario = null; limpiarUrl();
+    tokenHash = null; usuario = null; limpiarUrl();
     emit({ fase: 'invalida', error: 'El enlace no es válido, ya se utilizó o venció. Solicita un nuevo correo de recuperación.' });
   }
   const subscription = client?.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY' && session?.user?.id) {
+    if (event === 'PASSWORD_RECOVERY' && session?.user?.id && !conHash) {
       usuario = session.user.id;
       limpiarUrl();
       emit({ fase: 'lista', error: '' });
@@ -47,15 +56,35 @@ export function crearRecuperacion(client, browser) {
       invalidar();
     }
   }).data?.subscription;
-  // Registrar el listener antes de esperar la inicialización evita perder PASSWORD_RECOVERY.
+  // Un token_hash no se convierte automáticamente en una sesión al cargar la URL.
+  // Se limpia la dirección y se verifica una sola vez; una sesión previa no lo sustituye.
   if (solicitada) {
-    if (!client) invalidar();
-    else Promise.resolve(client.auth.initialize()).then(result => {
+    if (!client || (conHash && !hashValido)) invalidar();
+    else if (conHash) {
+      limpiarUrl();
+      Promise.resolve().then(async () => {
+        const inicial = await client.auth.initialize();
+        if (!vigente) return;
+        if (inicial.error) { invalidar(); return; }
+        const hash = tokenHash;
+        tokenHash = null;
+        const { data, error } = await client.auth.verifyOtp({ token_hash: hash, type: 'recovery' });
+        if (!vigente) return;
+        const cuenta = data?.session?.user?.id;
+        if (error || !data?.session?.access_token || !cuenta || data.user?.id !== cuenta) {
+          invalidar();
+          return;
+        }
+        usuario = cuenta;
+        emit({ fase: 'lista', error: '' });
+      }).catch(() => { if (vigente) invalidar(); });
+    } else Promise.resolve(client.auth.initialize()).then(result => {
+      if (!vigente) return;
       verificacion = setTimeout(() => {
         if (estado.fase === 'comprobando') invalidar();
       }, 0);
       if (result.error && estado.fase === 'comprobando') invalidar();
-    }).catch(invalidar);
+    }).catch(() => { if (vigente) invalidar(); });
   }
   async function cerrarRecuperacion() {
     if (!client) throw new Error('El servicio de acceso no está configurado.');
@@ -115,7 +144,7 @@ export function crearRecuperacion(client, browser) {
       browser.history.replaceState(null, '', '/#login');
       emit({ fase: 'inactiva', error: '' });
     },
-    dispose() { clearTimeout(verificacion); subscription?.unsubscribe(); listeners.clear(); },
+    dispose() { vigente = false; tokenHash = null; clearTimeout(verificacion); subscription?.unsubscribe(); listeners.clear(); },
   };
 }
 

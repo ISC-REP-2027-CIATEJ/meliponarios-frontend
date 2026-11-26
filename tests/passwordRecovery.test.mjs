@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { crearRecuperacion, esRutaRecuperacion, urlRecuperacion, validarNuevaPassword } from '../src/features/auth/passwordRecovery.mjs';
 
-function doble({ ruta = '/', evento = true, initError = null, updateError = null, signoutError = null, user = 'cuenta-recuperacion' } = {}) {
+function doble({ ruta = '/', evento = true, initError = null, updateError = null, signoutError = null, user = 'cuenta-recuperacion', query = '', verifyError = null, verifySession = true, verifyThrow = false } = {}) {
   let listener;
   const calls = [];
-  const location = { pathname: ruta, hash: '', search: '', origin: 'https://kaabmap.netlify.app' };
+  const location = { pathname: ruta, hash: '', search: query, origin: 'https://kaabmap.netlify.app' };
   const browser = { location, history: { replaceState(a, b, url) {
     const n = new URL(url, location.origin); Object.assign(location, { pathname: n.pathname, hash: n.hash, search: n.search });
   } } };
@@ -14,6 +14,13 @@ function doble({ ruta = '/', evento = true, initError = null, updateError = null
     async initialize() {
       if (evento) setTimeout(() => listener('PASSWORD_RECOVERY', { user: { id: 'cuenta-recuperacion' } }), 0);
       return { error: initError };
+    },
+    async verifyOtp(body) {
+      calls.push({ verify: body });
+      if (verifyThrow) throw new Error('network internal');
+      if (verifyError) return { error: verifyError };
+      listener('PASSWORD_RECOVERY', { user: { id: user } });
+      return { data: { user: { id: user }, session: verifySession ? { user: { id: user }, access_token: 'sesion-ficticia' } : null } };
     },
     async getUser() { calls.push('getUser'); return { data: { user: { id: user } } }; },
     async resetPasswordForEmail(email, options) { calls.push({ email, options }); return {}; },
@@ -86,3 +93,57 @@ test('la validación mantiene contraseñas exactamente como se escriben', () => 
   assert.equal(esRutaRecuperacion({ pathname: '/', hash: '#access_token=prueba&type=recovery' }), true);
 });
 
+
+test('token_hash válido verifica una sola vez y permite actualizar después de obtener sesión', async () => {
+  const d = doble({ ruta: '/reset-password', query: '?token_hash=hash-ficticio-qa&type=recovery' });
+  assert.equal(d.browser.location.search, '');
+  assert.equal(d.api.getSnapshot().fase, 'comprobando');
+  const unsubscribe = d.api.subscribe(() => {});
+  unsubscribe(); d.api.subscribe(() => {});
+  await tick();
+  assert.equal(d.api.getSnapshot().fase, 'lista');
+  assert.deepEqual(d.calls, [{ verify: { token_hash: 'hash-ficticio-qa', type: 'recovery' } }]);
+  assert.ok(!JSON.stringify(d.api.getSnapshot()).includes('hash-ficticio'));
+  await d.api.guardar('Contraseña de prueba', 'Contraseña de prueba');
+  assert.equal(d.api.getSnapshot().fase, 'completada');
+  assert.equal(d.calls.filter(x => x.verify).length, 1);
+  assert.equal(d.calls.filter(x => x.update).length, 1);
+  d.api.dispose();
+});
+test('token_hash vencido no se sustituye por una sesión anterior ni por un evento prematuro', async () => {
+  const d = doble({ ruta: '/reset-password', query: '?token_hash=hash-caducado-qa&type=recovery', verifyError: { code: 'otp_expired' } });
+  d.emit('PASSWORD_RECOVERY', { user: { id: 'sesion-anterior' } });
+  await tick();
+  assert.equal(d.api.getSnapshot().fase, 'invalida');
+  assert.equal(d.browser.location.search, '');
+  await assert.rejects(d.api.guardar('Contraseña de prueba', 'Contraseña de prueba'), /enlace/);
+  assert.equal(d.calls.filter(x => x.update).length, 0);
+  d.api.dispose();
+});
+test('token vacío, duplicado, propósito diferente o duplicado no llaman verifyOtp', async () => {
+  for (const query of [
+    '?token_hash=&type=recovery', '?token_hash=uno&token_hash=dos&type=recovery',
+    '?token_hash=uno&type=signup', '?token_hash=uno&type=email',
+    '?token_hash=uno&type=recovery&type=signup', '?token_hash=uno',
+    '?token_hash=dos%20partes&type=recovery',
+  ]) {
+    const d = doble({ ruta: '/reset-password', query });
+    assert.equal(d.api.getSnapshot().fase, 'invalida'); await tick();
+    assert.equal(d.calls.length, 0); assert.equal(d.browser.location.search, ''); d.api.dispose();
+  }
+});
+test('un evento con token_hash sin sesión confirmada en la respuesta no habilita el formulario', async () => {
+  const d = doble({ ruta: '/reset-password', query: '?token_hash=hash-sin-sesion-qa&type=recovery', verifySession: false });
+  await tick(); assert.equal(d.api.getSnapshot().fase, 'invalida');
+  assert.equal(d.calls.filter(x => x.verify).length, 1); d.api.dispose();
+});
+test('un fallo de red durante la verificación no reintenta el token de un solo uso', async () => {
+  const d = doble({ ruta: '/reset-password', query: '?token_hash=hash-offline-qa&type=recovery', verifyThrow: true });
+  await tick(); assert.equal(d.api.getSnapshot().fase, 'invalida');
+  assert.equal(d.calls.filter(x => x.verify).length, 1);
+  assert.ok(!d.api.getSnapshot().error.includes('internal')); d.api.dispose();
+});
+test('el cierre del controlador impide completar una verificación que todavía no empieza', async () => {
+  const d = doble({ ruta: '/reset-password', query: '?token_hash=hash-cerrado-qa&type=recovery', evento: false });
+  d.api.dispose(); await tick(); assert.equal(d.calls.length, 0);
+});

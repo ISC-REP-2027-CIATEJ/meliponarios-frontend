@@ -35,7 +35,7 @@ export default function ResetPasswordPage({ estado }) {
           <p role="status">{estado.error || 'Cerrando la sesión de recuperación…'}</p>
           <button className="km-button km-button--primary" disabled={busy} onClick={() => recuperacionPassword.terminar()}>Cerrar sesión y terminar</button></div>
         : <form className="grid gap-4 mt-5" onSubmit={guardar} aria-busy={busy}>
-          <p className="text-muted">Elige una contraseña que utilices únicamente para tu cuenta de KaabMap.</p>
+          <p className="text-muted">El enlace se verificó. Escribe y confirma la nueva contraseña de tu cuenta de KaabMap.</p>
           <label className="grid gap-2">Nueva contraseña<input className="km-field" name="new-password" type={visible ? 'text' : 'password'} autoComplete="new-password" minLength={8} maxLength={128} required value={password} disabled={busy} onChange={e => setPassword(e.target.value)} aria-describedby="password-help"/></label>
           <p id="password-help" className="text-sm text-muted">Entre 8 y 128 caracteres. Si tu cuenta requiere una contraseña más segura, se indicará al guardar.</p>
           <label className="grid gap-2">Confirmar contraseña<input className="km-field" name="confirm-password" type={visible ? 'text' : 'password'} autoComplete="new-password" minLength={8} maxLength={128} required value={confirmacion} disabled={busy} onChange={e => setConfirmacion(e.target.value)}/></label>
