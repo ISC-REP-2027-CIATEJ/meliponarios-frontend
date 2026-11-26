@@ -110,10 +110,9 @@ export default function RegisterPage({ onLogin }) {
               <input id="consentimientoAceptado" name="consentimientoAceptado" type="checkbox" required
                 className="mt-0.5 size-5 shrink-0 accent-bosque" checked={datos.consentimientoAceptado}
                 onChange={cambiarCampo} aria-invalid={Boolean(errores.consentimientoAceptado)}
-                aria-describedby={'registro-documentos-nota' + (errores.consentimientoAceptado ? ' consentimientoAceptado-error' : '')}/>
+                aria-describedby={errores.consentimientoAceptado ? 'consentimientoAceptado-error' : undefined}/>
               <span>Acepto los <strong>términos y condiciones</strong> y el <strong>aviso de privacidad</strong>.</span>
             </label>
-            <p id="registro-documentos-nota" className="mt-3 text-xs leading-relaxed text-muted">Documentos pendientes de publicación. El registro se encuentra en fase de pruebas.</p>
             {errores.consentimientoAceptado && <p id="consentimientoAceptado-error" role="alert" className="km-auth-error mt-2">{errores.consentimientoAceptado}</p>}
           </div>
         </fieldset>
