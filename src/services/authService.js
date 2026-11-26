@@ -1,32 +1,13 @@
 import { supabase, comprobarConfiguracion, supabaseConfigurado } from '../lib/supabase';
+import { registrarCuenta } from '../features/auth/registroCuenta.mjs';
 
 // LoginPage usa este valor para saber si puede consultar la sesión al abrir.
 export const hasBackend = supabaseConfigurado;
 
-// Nombre, apellidos y teléfono se guardan como metadatos de la cuenta.
+// El trigger del backend registra el perfil y la aceptación de documentos.
 export async function register(datos) {
   comprobarConfiguracion();
-
-  const { data: resultado, error } = await supabase.auth.signUp({
-    email: datos.email.trim().toLowerCase(),
-    password: datos.password,
-    options: {
-      data: {
-        nombre: datos.nombre.trim(),
-        apellidos: datos.apellidos.trim(),
-        telefono: datos.telefono?.trim() || null,
-      },
-    },
-  });
-
-  if (error) throw new Error(error.message);
-  if (!resultado.user) throw new Error('No se pudo completar el registro.');
-
-  return {
-    userId: resultado.user.id,
-    email: resultado.user.email,
-    emailVerificationRequired: !resultado.session,
-  };
+  return registrarCuenta(supabase, datos);
 }
 
 // Etiquetas correspondientes a los IDs confirmados en public.roles.

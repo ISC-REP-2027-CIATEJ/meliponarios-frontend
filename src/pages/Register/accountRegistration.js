@@ -6,6 +6,7 @@ export const datosIniciales = {
   email: '',
   password: '',
   confirmPassword: '',
+  consentimientoAceptado: false,
 };
 
 export function validarCuenta(datos) {
@@ -33,10 +34,17 @@ export function validarCuenta(datos) {
     errores.confirmPassword = 'Las contraseñas deben coincidir.';
   }
 
+  if (datos.consentimientoAceptado !== true) {
+    errores.consentimientoAceptado = 'Acepta los términos y condiciones y el aviso de privacidad para crear tu cuenta.';
+  }
+
   return errores;
 }
 
 export function prepararCuenta(datos) {
+  if (datos.consentimientoAceptado !== true) {
+    throw new Error('Debes aceptar los términos y condiciones y el aviso de privacidad.');
+  }
   // Estos nombres coinciden con el servicio de tu compañero.
   return {
     nombre: datos.firstName.trim(),
@@ -44,5 +52,6 @@ export function prepararCuenta(datos) {
     telefono: datos.phone.trim() || null,
     email: datos.email.trim().toLowerCase(),
     password: datos.password,
+    consentimientoAceptado: true,
   };
 }
