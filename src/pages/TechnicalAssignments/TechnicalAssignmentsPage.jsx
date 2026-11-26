@@ -114,6 +114,7 @@ function Workspace({ user }) {
     <div className="km-work-banner km-page-heading">
       <div>
         <h1 className="km-page-title">Coordinación de meliponarios</h1>
+        <a className="km-button mt-3" href="#agenda-visitas">Agenda e historial de visitas</a>
         <p className="mt-3 max-w-3xl text-sm leading-relaxed text-muted">Asigna equipo y trabajador, consulta las visitas vigentes y revisa las fichas técnicas desde este espacio.</p>
       </div>
       <button type="button" className={button} disabled={loading || busy} onClick={refresh}>{loading ? 'Actualizando…' : 'Actualizar registros'}</button>
@@ -141,7 +142,7 @@ function Workspace({ user }) {
             <input id="technical-search" className="review-field" type="search" maxLength={160} value={query} onChange={event => { setQuery(event.target.value); setPage(1); }}/></div>
         </div>
         {tab === 'pendientes' && <p className="mb-5 rounded-xl bg-soft p-4 text-sm leading-relaxed">Elige un meliponario con aprobación básica, después su equipo y el trabajador que realizará la primera visita.</p>}
-        {tab === 'revisiones' && <p className="mb-5 rounded-xl bg-soft p-4 text-sm">Aquí aparecen las fichas técnicas que devuelve el backend para tu cuenta y cobertura. El trabajador captura y envía sus datos desde la app para que puedas revisarlos.</p>}
+        {tab === 'revisiones' && <p className="mb-5 rounded-xl bg-soft p-4 text-sm">Revisa las respuestas y el inventario registrados por tu equipo. Toma la revisión de una ficha para aprobarla o solicitar una corrección.</p>}
         {tab === 'revisiones' ? <div className="grid gap-4">{visible.map(row => <article key={row.id} className="km-record-inset p-5">
           <h3 className="text-xl font-bold">{row.nombre}</h3>
           <p className="mt-2 text-sm text-muted">{[row.trabajadorNombre, row.localidad, row.estado.replaceAll('_', ' ')].filter(Boolean).join(' · ')}</p>

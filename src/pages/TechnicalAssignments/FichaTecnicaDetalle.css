@@ -1,0 +1,34 @@
+.ft-detail { margin-top: 8px; overflow: hidden; border: 1px solid var(--km-line); border-radius: 18px; background: white; }
+.ft-summary { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; padding: 20px; background: #edf5ef; border-bottom: 1px solid var(--km-line); }
+.ft-summary-title { flex: 1; min-width: 170px; }
+.ft-summary h4 { margin: 2px 0 0; color: var(--km-brand); font-size: 1.13rem; line-height: 1.35; }
+.ft-eyebrow { font-size: .73rem; letter-spacing: .08em; text-transform: uppercase; color: var(--km-muted); font-weight: 700; }
+.ft-metadata { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); padding: 20px; border-bottom: 1px solid var(--km-line); }
+.ft-metadata dt { color: var(--km-muted); font-size: .78rem; }
+.ft-metadata dd { margin-top: 5px; font-weight: 650; font-size: .91rem; overflow-wrap: anywhere; }
+.ft-tabs { padding: 16px 20px 0; display: flex; gap: 8px; flex-wrap: wrap; }
+.ft-tabs button[aria-pressed="true"] { background: var(--km-brand); color: white; border-color: var(--km-brand); }
+.ft-section { padding: 20px; }
+.ft-section-heading { margin-bottom: 20px; }
+.ft-section-heading h4 { margin: 0 0 4px; font-size: 1.07rem; color: var(--km-brand); }
+.ft-section-heading p, .ft-muted { color: var(--km-muted); font-size: .86rem; }
+.ft-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.ft-field { min-width: 0; padding: 16px; border: 1px solid #e1e9e2; border-radius: 13px; background: #fcfdfa; }
+.ft-field > dt { font-size: .86rem; font-weight: 700; line-height: 1.5; color: var(--km-brand); margin-bottom: 9px; }
+.ft-field > dd { font-size: .95rem; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ft-field--wide { grid-column: 1 / -1; }
+.ft-fields--nested { gap: 12px; }
+.ft-fields--nested .ft-field { background: white; }
+.ft-options { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.ft-options li { display: inline-block; background: #e6f0e8; border: 1px solid #d6e5d9; color: #234c37; padding: 5px 11px; border-radius: 8px; font-size: .9rem; }
+.ft-collection { display: grid; gap: 12px; }
+.ft-item { min-width: 0; }
+.ft-review-actions { padding: 18px; border: 1px solid var(--km-line); border-radius: 15px; background: white; display: grid; gap: 12px; }
+.ft-review-actions h4 { margin: 0; color: var(--km-brand); font-size: 1rem; }
+@media (max-width: 640px) {
+  .ft-fields { grid-template-columns: 1fr; }
+  .ft-section, .ft-summary, .ft-metadata { padding: 16px; }
+  .ft-tabs { padding: 16px 16px 0; }
+  .ft-field { padding: 13px; }
+}
+

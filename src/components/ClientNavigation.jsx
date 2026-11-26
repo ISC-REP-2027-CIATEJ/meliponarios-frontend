@@ -12,6 +12,7 @@ export function KaabMapBrand({ link = true }) {
 function ClientAccountLinks({ user }) {
   if (isAdminUser(user)) return <div className="km-account-links">
     <a href="#administracion/usuarios" className="km-button km-button--soft"><Icon name="user" size={18}/>Administrar usuarios</a>
+    <a href="#administracion/bajas" className="km-button km-button--soft"><Icon name="records" size={18}/>Solicitudes de baja</a>
     <a href="#administracion/productos" className="km-button km-button--soft"><Icon name="records" size={18}/>Catálogo de productos</a>
     <a href="#administracion/asignaciones" className="km-button km-button--soft"><Icon name="records" size={18}/>Asignaciones</a>
     <a href={'#' + ADMIN_COVERAGE_ROUTE} className="km-button km-button--soft"><Icon name="map" size={18}/>Cobertura territorial</a>
@@ -19,11 +20,15 @@ function ClientAccountLinks({ user }) {
   </div>;
   if ([3, 4].includes(Number(user?.roleId))) return <div className="km-account-links">
     {Number(user.roleId) === 3 && <a href="#territorio/equipos" className="km-button km-button--soft"><Icon name="user" size={18}/>Mis equipos</a>}
+    <a href="#agenda-visitas" className="km-button km-button--soft"><Icon name="records" size={18}/>Agenda de visitas</a>
     <a href="#campo/solicitudes" className="km-button km-button--soft"><Icon name="records" size={18}/>Solicitudes básicas</a>
     <a href="#campo/asignaciones-tecnicas" className="km-button km-button--soft"><Icon name="pin" size={18}/>{Number(user.roleId) === 3 ? 'Asignar meliponarios' : 'Meliponarios asignados'}</a>
   </div>;
   if (!isCliente(user)) return null;
-  return <a href="#mis-meliponarios" className="km-button km-button--soft"><Icon name="records" size={18}/>Mis meliponarios</a>;
+  return <div className="km-account-links">
+    <a href="#mis-meliponarios" className="km-button km-button--soft"><Icon name="records" size={18}/>Mis meliponarios</a>
+    <a href="#agenda-visitas" className="km-button km-button--soft"><Icon name="records" size={18}/>Mis visitas</a>
+  </div>;
 }
 
 export function ClientRegistrationButton({ user, sessionReady = true }) {

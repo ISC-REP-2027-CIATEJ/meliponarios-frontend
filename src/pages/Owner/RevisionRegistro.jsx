@@ -41,14 +41,14 @@ export default function RevisionRegistro({ record, userId, bloqueado }) {
     {record ? <>
       <button className="km-button" disabled={ocupado} onClick={() => { mostrar(null); ejecutar(async () => mostrar({ estado: record.estadoOperativo, visible: Boolean(await obtenerFichaPublica(record.id)) })); }}>Comprobar visibilidad sin sesión</button>
       {resultado && resultado.estado === record.estadoOperativo && <p role="status" className="my-3">{resultado.visible ? <a className="underline" href={'#meliponario/' + record.id}>Visible para visitantes · Abrir ficha</a> : 'El servicio público todavía no devuelve esta ficha.'}</p>}
-      <details className="mt-5"><summary>Solicitar la baja de este meliponario</summary>
+      {record.estado !== 'borrador' && <details className="mt-5"><summary>Solicitar la baja de este meliponario</summary>
         {baja ? <p role="status">Solicitud enviada a Administración.</p> :
           <form className="mt-3 grid gap-3" onSubmit={pedirBaja}>
             <label>Motivo de la baja<textarea required className="owner-field" value={motivo} onChange={e => cambiar(e.target.value)}/></label>
-            <p className="text-sm">El administrador revisará tu solicitud de desactivación. Se conserva el historial.</p>
+            <p className="text-sm">Al aprobar la baja, Administración retirará la ficha pública y conservará su historial.</p>
             <button className="km-button justify-self-start" disabled={bloqueado || ocupado || !motivo.trim()}>Solicitar baja</button>
           </form>}
-      </details>
+      </details>}
     </> : <p>Guarda el borrador para poder enviar la solicitud básica.</p>}
     {error && <p role="alert">{error}</p>}
   </section>;

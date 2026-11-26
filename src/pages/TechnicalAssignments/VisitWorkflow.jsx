@@ -1,3 +1,4 @@
+import FichaTecnicaDetalle from './FichaTecnicaDetalle';
 import { useCallback, useEffect, useState } from 'react';
 import { comprobarConfiguracion, supabase } from '../../lib/supabase';
 import { servicioEquipos } from '../../features/territory/territoryService';
@@ -27,16 +28,6 @@ function Lectura({ resultado, children }) {
   if (resultado.error) return <p role="alert">{resultado.error}</p>;
   if (resultado.data === undefined) return <p role="status">Consultando registros…</p>;
   return children(resultado.data);
-}
-
-function Contenido({ valor }) {
-  if (Array.isArray(valor)) return valor.length
-    ? <ul className="grid list-disc gap-2 pl-5">{valor.map((item, i) => <li key={i}><Contenido valor={item}/></li>)}</ul> : 'Sin registros';
-  if (valor && typeof valor === 'object') return <dl className="grid gap-2">{Object.entries(valor).map(([clave, v]) =>
-    <div key={clave} className="rounded-xl bg-soft px-3 py-2"><dt className="font-bold capitalize">{titulo(clave)}</dt>
-      <dd className="mt-1 whitespace-pre-wrap break-words"><Contenido valor={v}/></dd></div>)}</dl>;
-  if (typeof valor === 'boolean') return valor ? 'Sí' : 'No';
-  return valor === null || valor === '' ? 'Sin dato' : String(valor);
 }
 
 export function Asignar({ registro, user, ocupado, ejecutar }) {
@@ -80,14 +71,13 @@ export function Revision({ fila, ocupado, ejecutar }) {
       aprobar ? { id: fila.meliponario_id, nombre: fila.nombre_meliponario } : null);
   };
   return <Lectura resultado={datos}>{detalle => <div className="grid gap-4">
-    <details open><summary className="font-bold">Datos de la visita e inventario</summary><Contenido valor={detalle.ficha}/></details>
-    <details open><summary className="font-bold">Respuestas del trabajador</summary><Contenido valor={detalle.respuestas}/></details>
+    <FichaTecnicaDetalle detalle={detalle} fila={fila}/>
     {fila.estado === 'enviada' && <button className={primario} disabled={ocupado} onClick={() => {
       if (window.confirm('¿Tomar la revisión de esta ficha técnica?')) ejecutar(() => flujo.tomar(visita), 'Revisión tomada. Abre la ficha en revisión para resolverla.');
     }}>Tomar revisión</button>}
-    {fila.estado === 'en_revision' && <><label>Comentario al trabajador<textarea className="review-field" value={comentario} onChange={e => setComentario(e.target.value)}/></label>
+    {fila.estado === 'en_revision' && <section className="ft-review-actions"><h4>Resultado de la revisión</h4><label>Comentario al trabajador<textarea className="review-field" value={comentario} onChange={e => setComentario(e.target.value)}/></label>
       <div className="flex flex-wrap gap-3"><button className={boton} disabled={ocupado || !comentario.trim()} onClick={() => resolver('solicitar_correccion')}>Solicitar corrección</button>
-      <button className={primario} disabled={ocupado} onClick={() => resolver('aprobar')}>Aprobar ficha técnica</button></div></>}
+      <button className={primario} disabled={ocupado} onClick={() => resolver('aprobar')}>Aprobar ficha técnica</button></div></section>}
   </div>}</Lectura>;
 }
 
@@ -109,6 +99,7 @@ export default function VisitWorkflow() {
   return <main className="km-container km-workspace">
     <header className="km-work-banner km-page-heading"><div>
       <h1 className="km-page-title">Mis visitas de campo</h1>
+      <a className="km-button mt-3" href="#agenda-visitas">Programación y calendario</a>
       <p className="mt-2">Abre la app de campo con esta misma cuenta para capturar o corregir tu ficha.</p>
     </div><button className={boton} onClick={() => { setPagina(0); refrescar(v => v + 1); }}>Actualizar bandeja</button></header>
     <a className={boton + ' mb-4'} href="#campo/solicitudes">Solicitudes básicas</a>

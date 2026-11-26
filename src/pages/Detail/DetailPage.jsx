@@ -61,16 +61,26 @@ export default function DetailPage({ id, onBack, onExplore, onMap, onLogin, user
                 <h2 className="km-section-title">Acerca del meliponario</h2>
                 <p className="mt-3 whitespace-pre-line text-muted">{sitio.descripcion || 'Esta ficha no incluye una descripción.'}</p>
               </section>
-              <section className={panel}><h2 className="km-section-title">Tipos de abejas</h2>
-                {sitio.abejas.length ? <ul className="mt-3 grid gap-3">{sitio.abejas.map(a => <li key={a.cientifico || a.nombre}>
-                  <strong>{a.nombre}</strong> {a.cientifico !== a.nombre && <i>{a.cientifico}</i>}
-                  <p>{[a.cajas !== null && a.cajas + ' cajas', a.jobones !== null && a.jobones + ' jobones'].filter(Boolean).join(' · ')}</p>
-                </li>)}</ul> : <p>{sitio.especiesDisponibles ? 'Sin especies en la ficha pública.' : 'No se pudo consultar el inventario de abejas.'}</p>}
+              <section className={panel} aria-labelledby="detail-species-title">
+                <div className="detail-section-heading"><span className="km-icon-tile"><Icon name="bee"/></span>
+                  <div><h2 id="detail-species-title" className="km-section-title">Tipos de abejas</h2><p>Especies e inventario de la ficha pública.</p></div>
+                  {sitio.abejas.length > 0 && <span className="km-tag">{sitio.abejas.length} {sitio.abejas.length === 1 ? 'especie' : 'especies'}</span>}
+                </div>
+                {sitio.abejas.length ? <ul className="detail-species-list" role="list">{sitio.abejas.map((a, i) => <li className="detail-species-card" key={(a.cientifico || a.nombre) + i}>
+                  <div className="detail-species-name"><Icon name="bee" size={22}/><div><h3>{a.nombre}</h3>{a.cientifico && a.cientifico !== a.nombre && <p><i>{a.cientifico}</i></p>}</div></div>
+                  <dl className="detail-species-counts"><div><dt>Cajas</dt><dd>{a.cajas === null ? 'Sin dato' : a.cajas}</dd></div><div><dt>Jobones</dt><dd>{a.jobones === null ? 'Sin dato' : a.jobones}</dd></div></dl>
+                </li>)}</ul> : <p className="detail-empty">{sitio.especiesDisponibles ? 'Sin especies en la ficha pública.' : 'No se pudo consultar el inventario de abejas.'}</p>}
               </section>
-              {sitio.vendeMiel && <section className={panel}><h2 className="km-section-title">Productos de la colmena</h2>
-                {sitio.productosPublicos.length ? <ul className="mt-3 grid gap-3">{sitio.productosPublicos.map(p => <li key={p.nombre}>
-                  <FotoProductoPublico producto={p}/><strong>{p.nombre}</strong> · {p.disponibilidad}{p.descripcion && <p>{p.descripcion}</p>}
-                </li>)}</ul> : <p>{sitio.productosDisponibles ? 'Sin productos disponibles por ahora.' : 'No se pudo consultar la oferta.'}</p>}
+              {sitio.vendeMiel && <section className={panel} aria-labelledby="detail-products-title">
+                <div className="detail-section-heading"><span className="km-icon-tile"><Icon name="bag"/></span>
+                  <div><h2 id="detail-products-title" className="km-section-title">Productos de la colmena</h2><p>Consulta qué ofrece este meliponario.</p></div>
+                </div>
+                {sitio.productosPublicos.length ? <ul className="detail-products-list" role="list">{sitio.productosPublicos.map((p, i) => <li className="detail-product-card" key={p.nombre + i}>
+                  <FotoProductoPublico producto={p}/><div className="detail-product-body"><h3>{p.nombre}</h3>
+                    <span className="detail-availability" data-available={p.disponibilidad === 'Disponible'}>{p.disponibilidad}</span>
+                    {p.descripcion && <p>{p.descripcion}</p>}
+                  </div>
+                </li>)}</ul> : <p className="detail-empty">{sitio.productosDisponibles ? 'Sin productos disponibles por ahora.' : 'No se pudo consultar la oferta.'}</p>}
               </section>}
             </div>
             <aside className="km-detail-column">

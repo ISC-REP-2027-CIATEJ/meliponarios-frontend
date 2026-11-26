@@ -1,3 +1,4 @@
+import { crearRecuperacion } from "../features/auth/passwordRecovery.mjs";
 import { createClient } from "@supabase/supabase-js";
 
 // Estas variables son públicas. Nunca poner una clave service_role aquí.
@@ -8,6 +9,8 @@ export const supabaseConfigurado = Boolean(url && clave);
 
 // Dejamos ver los formularios aunque todavía falte configurar Supabase.
 export const supabase = supabaseConfigurado ? createClient(url, clave) : null;
+
+export const recuperacionPassword = crearRecuperacion(supabase, window);
 
 export function comprobarConfiguracion() {
   if (!supabase) {

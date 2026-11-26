@@ -1,0 +1,10 @@
+.visitas-toolbar { display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between; margin-bottom:1.25rem; }
+.visitas-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:1px solid #d9e4dc; border-radius:1rem; overflow:hidden; }
+.visitas-dia-semana { padding:.65rem; text-align:center; font-size:.8rem; font-weight:700; background:#e8f0e9; }
+.visitas-dia { padding:.5rem; min-height:110px; border-top:1px solid #d9e4dc; border-right:1px solid #d9e4dc; }
+.visitas-dia > span { display:inline-grid; place-items:center; width:1.6rem; height:1.6rem; font-size:.8rem; }
+.visitas-hoy { border-radius:50%; background:#07533c; color:white; }
+.visitas-evento { display:grid; gap:.2rem; width:100%; margin-top:.35rem; padding:.5rem; border:1px solid #bed6c7; border-radius:.65rem; text-align:left; color:#154d3c; background:#edf5ee; font-size:.75rem; overflow-wrap:anywhere; }
+.visitas-lista-movil { display:none; }
+.visitas-evento:focus-visible { outline:3px solid #1a7858; outline-offset:2px; }
+@media(max-width:700px) { .visitas-grid { display:none; } .visitas-lista-movil { display:grid; gap:.75rem; } }

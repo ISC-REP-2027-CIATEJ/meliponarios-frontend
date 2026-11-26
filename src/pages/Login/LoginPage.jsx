@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import AuthLayout from '../../components/AuthLayout';
 import { login } from '../../services/authService';
 import Icon from '../Explore/Icon';
+import PasswordRecoveryDialog from './PasswordRecoveryDialog';
 
 function Eye({ visible }) {
   return <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -83,10 +84,6 @@ export default function LoginPage({ onRegister, onExplore, onLoginSuccess, sessi
         </div>
       </form>}
     </div>
-    <dialog className="km-dialog" ref={dialog} aria-labelledby="notice-title">
-      <h2 id="notice-title" className="km-section-title">Recuperar contraseña</h2>
-      <p className="my-4 text-muted">La recuperación de contraseña todavía no está disponible desde esta pantalla.</p>
-      <form method="dialog"><button className="km-button km-button--primary">Entendido</button></form>
-    </dialog>
+    <PasswordRecoveryDialog dialog={dialog} emailInicial={email}/>
   </AuthLayout>;
 }
