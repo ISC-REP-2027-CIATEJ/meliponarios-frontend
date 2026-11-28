@@ -86,7 +86,7 @@ test('el reporte exporta todos los resultados filtrados y no depende de la pagin
   const reporte = crearReporte({ datos: base(), filtros: filtros(), ahora: '2026-11-27T19:00:00Z' });
   assert.equal(reporte.registros.length, 12);
   assert.equal(reporte.resumen.meliponarios, 12);
-  assert.ok(filasReporte(reporte).length > reporte.registros.length);
+  assert.equal(filasReporte(reporte).length, reporte.registros.length);
   assert.match(reporte.fuente, /EJEMPLO/);
   assert.match(nombreArchivoReporte(reporte, 'xlsx'), /EJEMPLO.*\.xlsx$/);
 });
@@ -112,14 +112,14 @@ test('Excel conserva números, marca el ejemplo y trata textos tipo fórmula com
   datos.registros[0].inventario[0].jobones = 0;
   const reporte = crearReporte({ datos, filtros: filtros() });
   const hojas = prepararHojasExcel(reporte);
-  assert.deepEqual(hojas.map(h => h.sheet), ['Resumen', 'Inventario', 'Criterios']);
+  assert.deepEqual(hojas.map(h => h.sheet), ['Resumen', 'Inventario', 'Consulta']);
   hojas.forEach(h => assert.ok(h.data.flat().some(c => c?.value?.includes?.('EJEMPLO'))));
   const inventario = hojas.find(h => h.sheet === 'Inventario');
   const fila = inventario.data.find(f => f[0]?.value === datos.registros[0].nombre);
   assert.equal(fila[0].type, String);
-  assert.equal(fila[7].type, Number);
-  assert.equal(fila[7].value, 0);
-  assert.equal(filasReporte(reporte)[0].length, 11);
+  assert.equal(fila[6].type, Number);
+  assert.equal(fila[6].value, 0);
+  assert.equal(filasReporte(reporte)[0].length, 10);
 });
 test('la exportación no contiene UUID, teléfonos, correos ni coordenadas', () => {
   const datos = crudo(); datos.registros[0].telefono = '5555555555'; datos.registros[0].email = 'prueba@invalid.example';

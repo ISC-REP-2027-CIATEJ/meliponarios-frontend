@@ -1,3 +1,5 @@
+import { validarGraficas } from './researchCharts.mjs';
+
 export const RUTA_INVESTIGACION = 'investigacion';
 export const RUTA_INVENTARIO = 'investigacion/inventario';
 export const esInvestigador = user => Number(user?.roleId) === 2;
@@ -14,6 +16,9 @@ export function fechaVisible(fecha) {
 }
 export function instanteVisible(fecha) {
   return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Mexico_City' }).format(new Date(fecha));
+}
+export function fechaMexico(fecha) {
+  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeZone: 'America/Mexico_City' }).format(new Date(fecha));
 }
 const claveTexto = valor => String(valor || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-MX');
 const texto = (valor, campo) => {
@@ -108,9 +113,13 @@ export function resumirInventario(registros) {
     return [...grupos.values()].sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre, 'es'));
   };
   const especies = new Map();
+  const inventarios = new Map();
   registros.forEach(r => r.inventario.forEach(fila => {
     const grupo = especies.get(fila.especieId) || { id: fila.especieId, nombre: fila.nombreComun, cientifico: fila.nombreCientifico, total: 0 };
     especies.set(fila.especieId, { ...grupo, total: grupo.total + 1 });
+    const anterior = inventarios.get(fila.especieId) || { id: fila.especieId, nombre: fila.nombreComun, cientifico: fila.nombreCientifico, inventario: [] };
+    anterior.inventario.push(fila);
+    inventarios.set(fila.especieId, anterior);
   }));
   return {
     meliponarios: registros.length, especies: especies.size, localidades: new Set(registros.map(r => r.localidadId)).size,
@@ -118,6 +127,7 @@ export function resumirInventario(registros) {
     sinInventario: registros.filter(r => !r.inventario.length).length, sinGPS: registros.filter(r => !tieneGPS(r)).length,
     municipios: agrupar(r => r.municipioId, r => r.municipio),
     distribucionEspecies: [...especies.values()].sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre, 'es')),
+    inventarioEspecies: [...inventarios.values()].map(fila => ({ id: fila.id, nombre: fila.nombre, cientifico: fila.cientifico, cajas: sumarMedida([fila], 'cajas'), jobones: sumarMedida([fila], 'jobones') })).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
     estados: agrupar(r => r.estadoOperativo || 'sin_dato', r => textoEstado(r.estadoOperativo)),
   };
 }
@@ -136,16 +146,19 @@ const congelar = objeto => {
   if (objeto && typeof objeto === 'object') { Object.values(objeto).forEach(congelar); Object.freeze(objeto); }
   return objeto;
 };
-export function crearReporte({ datos, filtros, seleccion = [], alcance = 'filtrados', ahora = new Date().toISOString() }) {
+export function crearReporte({ datos, filtros, seleccion = [], alcance = 'filtrados', graficas, incluirGraficas = true, ahora = new Date().toISOString() }) {
   if (!['filtrados', 'seleccionados'].includes(alcance)) throw new Error('Elige el alcance del reporte.');
   const visibles = filtrarInventario(datos.registros, filtros);
   const ids = new Set(seleccion);
   const registros = alcance === 'seleccionados' ? visibles.filter(r => ids.has(r.id)) : visibles;
   if (!registros.length) throw new Error('No hay meliponarios en el alcance seleccionado.');
   const copia = JSON.parse(JSON.stringify(registros));
-  return congelar({ titulo: 'Inventario territorial de meliponarios', modo: datos.modo, fuente: datos.modo === 'ejemplo' ? 'EJEMPLO · Datos ficticios para revisar el diseño. No son registros de CIATEJ.' : 'Consulta de inventario autorizada para la cuenta investigadora', fechaConsulta: datos.fechaConsulta, generado: ahora, alcance: alcance === 'seleccionados' ? 'Solo los meliponarios seleccionados dentro de los filtros' : 'Todos los meliponarios que cumplen los filtros', criterios: describirFiltros(filtros, opcionesTerritoriales(datos.registros, filtros)), nota: NOTA_METODOLOGICA, resumen: resumirInventario(copia), registros: copia });
+  return congelar({ titulo: 'Inventario territorial de meliponarios', modo: datos.modo, fuente: datos.modo === 'ejemplo' ? 'EJEMPLO · Datos ficticios para revisar el diseño. No son registros de CIATEJ.' : 'Consulta de inventario autorizada para la cuenta investigadora', fechaConsulta: datos.fechaConsulta, generado: ahora, alcanceClave: alcance, alcance: alcance === 'seleccionados' ? 'Solo los meliponarios seleccionados dentro de los filtros' : 'Todos los meliponarios que cumplen los filtros', criterios: describirFiltros(filtros, opcionesTerritoriales(datos.registros, filtros)), nota: NOTA_METODOLOGICA, resumen: resumirInventario(copia), registros: copia, graficas: validarGraficas(graficas), incluirGraficas: incluirGraficas === true });
 }
 export function nombreArchivoReporte(reporte, extension) {
-  const sello = reporte.generado.replace(/[^0-9]/g, '').slice(0, 14);
-  return `KaabMap_${reporte.modo === 'ejemplo' ? 'EJEMPLO_' : ''}inventario_territorial_${sello}.${extension}`;
+  const partes = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(reporte.generado));
+  const valores = Object.fromEntries(partes.map(parte => [parte.type, parte.value]));
+  const sello = ['year', 'month', 'day', 'hour', 'minute', 'second'].map(clave => valores[clave]).join('');
+  const alcance = reporte.alcanceClave === 'seleccionados' ? 'seleccion' : 'filtrados';
+  return `KaabMap_${reporte.modo === 'ejemplo' ? 'EJEMPLO_' : ''}inventario_territorial_${alcance}_${reporte.registros.length}_${sello}.${extension}`;
 }
