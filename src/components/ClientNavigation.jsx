@@ -3,6 +3,7 @@ import { isAdminUser } from '../features/adminUsers/adminUsersModel.mjs';
 import { isCliente } from '../features/ownerMeliponarios/model';
 import { ADMIN_COVERAGE_ROUTE } from '../features/territory/territoryCoverageModel.mjs';
 import Icon from '../pages/Explore/Icon';
+import { esInvestigador } from '../features/research/inventarioModel.mjs';
 
 export function KaabMapBrand({ link = true }) {
   const mark = <><span className="km-brand-mark"><Icon name="bee" size={23}/></span><span>KaabMap</span></>;
@@ -10,6 +11,10 @@ export function KaabMapBrand({ link = true }) {
 }
 
 function ClientAccountLinks({ user }) {
+  if (esInvestigador(user)) return <div className="km-account-links">
+    <a href="#investigacion" className="km-button km-button--soft"><Icon name="layers" size={18}/>Panel de investigación</a>
+    <a href="#investigacion/inventario" className="km-button km-button--soft"><Icon name="records" size={18}/>Inventario territorial</a>
+  </div>;
   if (isAdminUser(user)) return <div className="km-account-links">
     <a href="#administracion/usuarios" className="km-button km-button--soft"><Icon name="user" size={18}/>Administrar usuarios</a>
     <a href="#administracion/bajas" className="km-button km-button--soft"><Icon name="records" size={18}/>Solicitudes de baja</a>
@@ -101,6 +106,7 @@ export function OwnerHeader({ user, sessionReady = true, onLogout, onLogin, onEx
       <nav aria-label="Navegación principal" className="km-nav">
         <NavLink to="explorar" icon="home" active={current === 'explorar'} onNavigate={onExplore}>Inicio</NavLink>
         <NavLink to="mapa" icon="map" active={current === 'mapa'} onNavigate={onMap}>Mapa</NavLink>
+        {sessionReady && esInvestigador(user) && <NavLink to="investigacion" icon="layers" active={current === 'investigacion'}>Investigación</NavLink>}
         {sessionReady && isCliente(user) && <NavLink to="mis-meliponarios" icon="records" active={current === 'registros'}>Mis registros</NavLink>}
         {!sessionReady ? <span role="status" className="sr-only">Comprobando sesión…</span>
           : !user ? <NavLink to="login" icon="user" onNavigate={onLogin}>Iniciar sesión</NavLink>
