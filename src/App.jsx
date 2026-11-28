@@ -5,6 +5,7 @@ import { FIELD_REVIEWS_ROUTE } from './features/fieldReviews/fieldReviewsModel.m
 import { ADMIN_USERS_ROUTE } from './features/adminUsers/adminUsersModel.mjs';
 import { ADMIN_COVERAGE_ROUTE } from './features/territory/territoryCoverageModel.mjs';
 import { esRutaCliente } from './features/ownerMeliponarios/routes';
+import { esInvestigador, esRutaInvestigacion } from './features/research/inventarioModel.mjs';
 import { useEffect, useRef, useState, useSyncExternalStore, lazy, Suspense } from 'react';
 import LoginPage from "./pages/Login/LoginPage";
 import RegisterPage from "./pages/Register/RegisterPage";
@@ -24,10 +25,11 @@ const FieldReviewsPage = lazy(() => import('./pages/FieldReviews/FieldReviewsPag
 const TechnicalAssignmentsPage = lazy(() => import('./pages/TechnicalAssignments/TechnicalAssignmentsPage'));
 const AdminUsersPage = lazy(() => import('./pages/AdminUsers/AdminUsersPage'));
 const OwnerMeliponariosPage = lazy(() => import('./pages/Owner/OwnerMeliponariosPage'));
+const ResearchDashboardPage = lazy(() => import('./pages/Research/ResearchDashboardPage'));
 
 function paginaActual() {
   const pagina = window.location.hash.slice(1);
-  return pagina === 'administracion/bajas' || pagina === 'agenda-visitas' || pagina === 'administracion/productos' || pagina === 'territorio/equipos' || pagina === ADMIN_COVERAGE_ROUTE || pagina === 'campo/asignaciones-tecnicas' || pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
+  return esRutaInvestigacion(pagina) || pagina === 'administracion/bajas' || pagina === 'agenda-visitas' || pagina === 'administracion/productos' || pagina === 'territorio/equipos' || pagina === ADMIN_COVERAGE_ROUTE || pagina === 'campo/asignaciones-tecnicas' || pagina === 'administracion/asignaciones' || pagina === FIELD_REVIEWS_ROUTE || pagina === ADMIN_USERS_ROUTE || esRutaCliente(pagina) || ["explorar", "mapa", "register", "login"].includes(pagina) ||
     pagina.startsWith("meliponario/")
     ? pagina
     : "explorar";
@@ -88,7 +90,7 @@ function AplicacionPrincipal() {
 
   useEffect(() => {
     if (user && (page === "login" || page === "register")) {
-      window.location.hash = "explorar";
+      window.location.hash = esInvestigador(user) ? 'investigacion' : 'explorar';
     }
   }, [page, user]);
 
@@ -98,7 +100,7 @@ function AplicacionPrincipal() {
 
   function completarLogin(usuario) {
     setUser(usuario);
-    ir("explorar");
+    ir(esInvestigador(usuario) ? 'investigacion' : 'explorar');
   }
 
   async function actualizarCuentaAdministrativa() {
@@ -121,6 +123,10 @@ function AplicacionPrincipal() {
     ir(`meliponario/${encodeURIComponent(id)}`);
   }
 
+  if (esRutaInvestigacion(page))
+    return <Suspense fallback={<main role="status" className="p-10">Preparando investigación…</main>}>
+      <ResearchDashboardPage route={page} user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/>
+    </Suspense>;
   if (page === 'territorio/equipos')
     return <Suspense fallback={<main role="status" className="p-10">Cargando equipos…</main>}>
       <WorkTeamsPage user={user} sessionReady={sessionReady} onLogout={cerrarSesion}/>
